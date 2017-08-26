@@ -1,0 +1,21 @@
+{
+  "name": "crypto-coin-trading",
+  "version": "1.0.0",
+  "description": "alt client for crypto coin trading",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luis Miranda",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "bootstrap": "^4.0.0-beta",
+    "clipboard": "^1.7.1",
+    "express": "^4.15.4",
+    "jquery": "^3.2.1",
+    "lodash": "^4.17.4",
+    "popper.js": "^1.12.3",
+    "socket.io": "^2.0.3"
+  }
+}

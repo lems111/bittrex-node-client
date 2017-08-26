@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="app.css" rel="stylesheet">
+    <script src="/jquery/dist/jquery.js"></script>
+    <script src="/lodash/lodash.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/popper.js/dist/umd/popper.min.js"></script>
+    <script src="/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="/clipboard/dist/clipboard.min.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/trade.js"></script>
+    <script src="/js/socketClient.js"></script>
+</head>
+
+<body>
+    <div class="modal fade" id="update-modal" tabindex="-1" role="dialog" aria-labelledby="header-title" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="header-title">Update value</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <div class="input-group-btn">
+                            <button id="update-selection" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Select
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="update-dropdown-item dropdown-item" href="#">Margin</a>
+                                <a class="update-dropdown-item dropdown-item" href="#">Ticker</a>
+                            </div>
+                        </div>
+                        <input id="update-input" type="text" class="form-control" aria-label="Text input with dropdown button">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button id="process-update" type="button" class="btn btn-primary">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <a class="navbar-brand" href="#">bittrex client</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item p-2">
+                <span id="orderStatus" class="badge badge-warning p-2"></span>
+            </li>
+        </ul>
+        <form class="form-inline my-2 my-lg-0">
+            <button class="btn btn-sm btn-outline-success my-2 my-sm-0" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
+        </form>
+        <form class="form-inline my-2 my-lg-0">
+            <button id="stats" class="btn btn-sm btn-outline-warning" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
+        </form>
+    </nav>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top fixed-top-2 bg-dark">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item p-2">
+                <span id="currentUSD" class="badge badge-pill badge-info p-2"></span>
+            </li>
+            <li class="nav-item p-2">
+                <span id="belowCurrent" class="badge badge-pill badge-secondary p-2" onclick="copy('#belowCurrent')"></span>
+            </li>
+            <li class="nav-item p-2">
+                <span id="adjustedBelowCurrent" class="badge badge-pill badge-secondary p-2"></span>
+            </li>
+        </ul>
+        <form class="form-inline my-2 my-lg-0">
+            <input id="new-rate" class="form-control mr-sm-2" type="text" placeholder="enter rate" aria-label="Search">
+            <button class="btn btn-sm btn-outline-success my-2 my-sm-0" type="button" onclick="checkRate()">Check Rate</button>
+        </form>
+    </nav>
+    </nav>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top fixed-top-3 bg-dark">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item p-2">
+                <span id="gains" class="badge badge-pill badge-success p-2"></span>
+            </li>
+            <li class="nav-item p-2">
+                <span id="overCurrent" class="badge badge-pill badge-secondary p-2" onclick="copy('#overCurrent')"></span>
+            </li>
+            <li class="nav-item p-2">
+                <span id="adjustedOverCurrent" class="badge badge-pill badge-secondary p-2"></span>
+            </li>
+        </ul>
+        <form class="form-inline">
+            <button class="btn btn-sm btn-outline-danger" type="button" onclick="trade()">Trade</button>
+        </form>
+    </nav>
+    <div class="jumbotron">
+        <div class="row">
+            <div id="altcoin1" class="col-12 col-md-auto col-lg-auto">
+                <div id="tickerContainer" class="container">
+                    <!-- Results here -->
+                </div>
+            </div>
+            <div id="buys" class="col-12 col-md-auto col-lg-auto">
+                <h4>Buys</h3>
+                <div id="buysContainer" class="container">
+                    <!-- Results here -->
+                </div>
+            </div>
+            <div id="sells" class="col-12 col-md-auto col-lg-auto">
+                <h4>Sells</h3>
+                <div id="sellsContainer" class="container">
+                    <!-- Results here -->
+                </div>
+            </div>
+            <div id="fills" class="col-12 col-md-auto col-lg-auto">
+                <div id="fillsContainer" class="container">
+                    <!-- Results here -->
+                </div>
+            </div>
+        </div>
+    </div>  
+    
+    <script id="template-trans-row" type="text/template">
+        <div class="trans-row row alert-{{alertType}}" role="alert">
+            <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
+                <div class="rate" role="alert">
+                    {{data2}}
+                </div>
+            </div>
+            <div class="col-12 col-md-auto col-lg-auto" onclick="quantityClicked({{data3}})">
+                <div class="quantity" role="alert">
+                    {{data3}}
+                </div>
+            </div>
+        </div>
+    </script>
+    <script id="template-fill-row" type="text/template">
+        <div class="fill-row row">
+            <div class="col-12 col-md-auto col-lg-auto">
+                {{data1}}
+            </div>
+            <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
+                <div class="rate" role="alert">
+                    {{data2}}
+                </div>
+            </div>
+            <div class="col-12 col-md-auto col-lg-auto" onclick="quantityClicked({{data3}})">
+                <div class="quantity" role="alert">
+                    {{data3}}
+                </div>
+            </div>
+            <div class="col-12 col-md-auto col-lg-auto">
+                {{data4}}
+            </div>
+        </div>
+    </script>
+    <script id="template-ticker-row" type="text/template">
+        <div class="ticker-row row">
+            <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
+                <div class="rate" role="alert">
+                    {{data1}}
+                </div>
+            </div>
+        </div>
+    </script>
+</body>
+
+</html>
+<script>
+var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.015, commission:.0025, tradeUnits: 10},    
+    rates, trade, tradeStatus, ticker, selectedRate, selectedQuantity, tradesInterval;
+    
+$( document ).ready(function() {
+    console.log( "ready!" );
+    initUpdates();
+});
+//setInterval(function() { socket.emit('tradeStatus', {ticker:config.ticker, currency:config.currency}) }, 2000);
+
+$( ".update-dropdown-item" ).on( "click", function() {
+    const type = $(this).text();
+    $("#update-selection").text(type);
+    $("#update-input").val('');
+    switch(type){
+        case "Margin":
+            $("#update-input").attr("placeholder", "enter value in ¢...ex: .012");
+            break;
+        case "Ticker":
+        $("#update-input").attr("placeholder", "enter ticker...ex: BTC-ETH");
+        break;
+    }
+});
+
+$( "#process-update" ).on( "click", function() {
+    const type = $("#update-selection").text(), input = $("#update-input").val();
+
+    switch(type){
+        case "Margin":
+            updateMargin(parseFloat(input));
+            break;
+        case "Ticker":
+            updateTicker(input);
+            break;
+    }
+    $("#update-modal").modal('hide')
+});
+</script>
