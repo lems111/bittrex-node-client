@@ -5,7 +5,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: '737097941bb841cd90ed55f38fc57e68',
                     apisecret: '8b8db7e322034b1bac1150ce081bc9da',
-                    verbose: true
+                    verbose: false
                 }
             }
         case 'prod':
@@ -13,7 +13,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: '737097941bb841cd90ed55f38fc57e68',
                     apisecret: '8b8db7e322034b1bac1150ce081bc9da',
-                    verbose: true
+                    verbose: false
                 }
             }
         default:
@@ -21,7 +21,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: '737097941bb841cd90ed55f38fc57e68',
                     apisecret: '8b8db7e322034b1bac1150ce081bc9da',
-                    verbose: true
+                    verbose: false
                 }
             }
     }

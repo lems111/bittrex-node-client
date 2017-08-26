@@ -1,6 +1,6 @@
 function trade() {
-    if (!_.isEmpty(tradeStatus)) {
-        const trade = {
+    if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate) {
+        tradeData = {
             ticker: config.ticker,
             buyRate: rates.belowRate,
             sellRate: rates.aboveRate,
@@ -8,29 +8,52 @@ function trade() {
             currency: config.currency,
             buyCost: rates.adjustedBelowRate
         };
-        console.log('trade: ', trade);
-        socket.emit('trade', trade);
+        console.log('tradeData: ', tradeData);
+        localStorage.tradeData = JSON.stringify(tradeData);
+        socket.emit('trade', tradeData);
     }
+
+}
+
+function cancelTrade() {
+    tradeData = null;
+    localStorage.tradeData = null;
+    socket.emit('cancelTrade', {ticker: config.ticker});
+
 }
 
 function updateTradeStatus(data) {
-    var startTrade = false;
-    tradeStatus = data;
     console.log(data);
+    if (tradeStatusInterval)
+        clearInterval(tradeStatusInterval);
+
     if (!_.isEmpty(data)) {
-        if (data.status === 'active') {
-            order = data.order;
-            opened = new Date(order.Opened + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
-            msg = order.OrderType + ' - Rate: ' + order.Limit + ', Quantity: ' + order.Quantity + ', Remaining: ' + order.QuantityRemaining + ', Opened: ' + opened;
-            $("#orderStatus").text(msg).show();
-        } else if (data.status === 'pendingBuy') {
-            msg = 'Pending Buy' + data.coin.Currency + ' Balance: ' + data.coin.Balance + ' Available: ' + data.coin.Available + ' Pending: ' + data.coin.Pending;
-            $("#orderStatus").text(msg).show();
-        } else if (data.status === 'error' || data.status === 'info') {
-            $("#orderStatus").text(data.msg).show();
-        }else {
-            tradeStatus.orders = null;
-            $("#orderStatus").text("").hide();
+        switch (data.status) {
+            case 'active':
+                order = data.order;
+                opened = new Date(order.Opened + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
+                msg = order.OrderType + ' - Rate: ' + order.Limit + ', Quantity: ' + order.Quantity + ', Remaining: ' + order.QuantityRemaining + ', Opened: ' + opened;
+                $("#orderStatus").text(msg).show();
+                tradeStatusInterval = setInterval(function() { socket.emit('trade', tradeData) }, 2000);
+                break;
+            case 'pendingTrans':
+                msg = 'Pending Transaction' + data.coin.Currency + ' Balance: ' + data.coin.Balance + ' Available: ' + data.coin.Available + ' Pending: ' + data.coin.Pending;
+                $("#orderStatus").text(msg).show();
+                tradeStatusInterval = setInterval(function() { socket.emit('trade', tradeData) }, 2000);
+                break;
+            case 'pendingBuy':
+            case 'pendingSell':
+                $("#orderStatus").text(data.msg).show();
+                tradeStatusInterval = setInterval(function() { socket.emit('trade', tradeData) }, 2000);
+                break;
+            case 'error':
+            case 'info':
+                $("#orderStatus").text(data.msg).show();
+                break;
+            default:
+                tradeStatus.orders = null;
+                $("#orderStatus").text("").hide();
+                break;
         }
 
     } else {

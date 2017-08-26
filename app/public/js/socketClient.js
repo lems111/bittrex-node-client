@@ -17,10 +17,11 @@ socket.on('broad', function(data) {
 
     if (!_.isEmpty(data.Fills)) {
         _.forEach(data.Fills, function(fill, key) {
+            timestamp = new Date(fill.TimeStamp + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
             fillRow = fillRowTemplate.replace(/{{data1}}/g, fill.OrderType)
                 .replace(/{{data2}}/g, fill.Rate)
                 .replace(/{{data3}}/g, fill.Quantity)
-                .replace(/{{data4}}/g, fill.TimeStamp);
+                .replace(/{{data4}}/g, timestamp);
         });
 
         if (fillRow)
@@ -37,7 +38,7 @@ socket.on('ticker', function(data) {
         .replace(/{{data2}}/g, data.price);
 
     ticker = data;
-
+    localStorage.ticker = JSON.stringify(ticker);
     $("#tickerContainer").prepend(tickerRow);
 });
 

@@ -34,6 +34,8 @@
                             <div class="dropdown-menu">
                                 <a class="update-dropdown-item dropdown-item" href="#">Margin</a>
                                 <a class="update-dropdown-item dropdown-item" href="#">Ticker</a>
+                                <a class="update-dropdown-item dropdown-item" href="#">Trade Units</a>
+                                <a class="update-dropdown-item dropdown-item" href="#">Frequency</a>
                             </div>
                         </div>
                         <input id="update-input" type="text" class="form-control" aria-label="Text input with dropdown button">
@@ -57,10 +59,9 @@
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <button class="btn btn-sm btn-outline-success my-2 my-sm-0" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
-        </form>
-        <form class="form-inline my-2 my-lg-0">
-            <button id="stats" class="btn btn-sm btn-outline-warning" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
+            <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" onclick="seekProfit()">Seek Profit</button>
+            <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
+            <button id="stats" class="btn btn-sm btn-outline-warning my-2 my-sm-0" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
         </form>
     </nav>
     <nav class="navbar navbar-expand-md navbar-dark fixed-top fixed-top-2 bg-dark">
@@ -94,7 +95,8 @@
             </li>
         </ul>
         <form class="form-inline">
-            <button class="btn btn-sm btn-outline-danger" type="button" onclick="trade()">Trade</button>
+            <button class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="trade()">Trade</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" onclick="cancelTrade()">Cancel Trade</button>
         </form>
     </nav>
     <div class="jumbotron">
@@ -171,26 +173,32 @@
 
 </html>
 <script>
-var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.015, commission:.0025, tradeUnits: 10},    
-    rates, trade, tradeStatus, ticker, selectedRate, selectedQuantity, tradesInterval;
+var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.015, commission:.0025, tradeUnits: 10, frequency: 'repeat'},    
+    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval,tradeStatusInterval;
     
+restoreData();
+
 $( document ).ready(function() {
     console.log( "ready!" );
     initUpdates();
 });
-//setInterval(function() { socket.emit('tradeStatus', {ticker:config.ticker, currency:config.currency}) }, 2000);
 
 $( ".update-dropdown-item" ).on( "click", function() {
     const type = $(this).text();
     $("#update-selection").text(type);
-    $("#update-input").val('');
     switch(type){
         case "Margin":
-            $("#update-input").attr("placeholder", "enter value in ¢...ex: .012");
+            $("#update-input").attr("placeholder", "enter value in ¢...ex: .012").val(config.margin);
             break;
         case "Ticker":
-        $("#update-input").attr("placeholder", "enter ticker...ex: BTC-ETH");
-        break;
+            $("#update-input").attr("placeholder", "enter ticker...ex: BTC-ETH").val(config.ticker);
+            break;
+        case "Trade Units":
+            $("#update-input").attr("placeholder", "enter trade size...ex: 10 units").val(config.tradeUnits);
+            break;
+        case "Frequency":
+            $("#update-input").attr("placeholder", "once or repeat").val(config.frequency);
+            break;
     }
 });
 
@@ -203,6 +211,9 @@ $( "#process-update" ).on( "click", function() {
             break;
         case "Ticker":
             updateTicker(input);
+            break;
+        case "Trade Units":
+            updateTradeUnits(parseFloat(input));
             break;
     }
     $("#update-modal").modal('hide')

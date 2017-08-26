@@ -20,8 +20,22 @@ module.exports = {
     },
     buyLimit: function(options) {
         return new Promise(function(resolve, reject) {
-            bittrex.buylimit(function(options, balances) {
-                resolve(balances);
+            bittrex.buylimit(options, function(res) {
+                resolve(res);
+            });
+        })
+    },
+    sellLimit: function(options) {
+        return new Promise(function(resolve, reject) {
+            bittrex.selllimit(options, function(res) {
+                resolve(res);
+            });
+        })
+    },
+    cancel: function(options) {
+        return new Promise(function(resolve, reject) {
+            bittrex.cancel(options, function(res) {
+                resolve(res);
             });
         })
     }

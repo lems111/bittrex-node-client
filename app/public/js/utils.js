@@ -1,3 +1,18 @@
+function restoreData() {
+    console.log(localStorage);
+    if (localStorage.config)
+        config = JSON.parse(localStorage.config);
+
+    if (localStorage.rates)
+        rates = JSON.parse(localStorage.rates);
+
+    if (localStorage.tradeData)
+        tradeData = JSON.parse(localStorage.tradeData);
+
+    if (localStorage.ticker)
+        ticker = JSON.parse(localStorage.ticker);
+}
+
 function copy(el) {
     new Clipboard(el, {
         text: function(trigger) {
@@ -26,6 +41,11 @@ function rateClicked(rate) {
     }
 }
 
+function updateTradeUnits(units) {
+    config.tradeUnits = units;
+    localStorage.config = JSON.stringify(config);
+}
+
 function updateTicker(ticker) {
     const fromIndex = ticker.indexOf('-') + 1;
 
@@ -33,6 +53,7 @@ function updateTicker(ticker) {
     config.ticker = ticker;
     config.currency = ticker.substring(fromIndex);
 
+    localStorage.config = JSON.stringify(config);
     resetConnection();
 }
 
@@ -46,13 +67,11 @@ function resetConnection() {
 }
 
 function initUpdates() {
-    console.log('4');
     // start things
     socket.emit('ticker', config.tickers);
     socket.emit('messages', config.tickers);
-    socket.emit('tradeStatus', { ticker: config.ticker, currency: config.currency });
+    socket.emit('tradeStatus', { ticker: config.ticker });
     tradesInterval = setInterval(function() { socket.emit('ticker', config.tickers) }, 30000);
-    console.log('5');
 }
 
 function highlightRates() {
@@ -109,6 +128,9 @@ function calculateFromRate(rate) {
         gainsPrice: gainsPrice,
         gainsRate: parseFloat(gainsRate).toFixed(8)
     };
+
+    localStorage.rates = JSON.stringify(rates);
+
     return rates;
     //console.log(usdPrice);
 
@@ -127,6 +149,7 @@ function showStats() {
         outstandingSellCount = updatedSellCount + newSellCount - canceledSellCount,
         msg = '';
 
+    msg += ('Trade Units: ' + config.tradeUnits + '<br/>');
     msg += ('Margin: ' + config.margin + '¢<br/>');
     msg += ('Total Buy Count: ' + totalBuyCount + '<br/>');
     msg += ('Outstanding Buy Count: ' + outstandingBuyCount + '<br/>');
@@ -146,8 +169,11 @@ function checkRate() {
 }
 
 function updateMargin(newMargin) {
-    if (newMargin)
+    if (newMargin) {
         config.margin = newMargin;
+        localStorage.config = JSON.stringify(config);
+    }
+
 }
 
 function quantityClicked(quantity) {
@@ -193,4 +219,8 @@ function newTransaction(transArray, container) {
 
     if (transRow)
         $(container).prepend(transRow);
+}
+
+function seekProfit(){
+    socket.emit('seekProfit');
 }
