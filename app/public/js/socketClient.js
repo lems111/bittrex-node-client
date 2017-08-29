@@ -57,3 +57,12 @@ socket.on('disconnect', () => {
     socket.open();
     initUpdates();
 });
+
+socket.on('profitTicker', function(data) {
+    console.log('profitTicker: ', data);
+    const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
+        tickerRow = buttonTemplate.replace(/{{data1}}/g, data.MarketName)
+        .replace(/{{data2}}/g, 'Bid: ' + data.Ask + ', Sell: ' + data.Bid + ', Last: ' + data.Last);
+
+    $("#profit-ticker-container").prepend(tickerRow);
+});

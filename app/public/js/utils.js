@@ -222,5 +222,5 @@ function newTransaction(transArray, container) {
 }
 
 function seekProfit(){
-    socket.emit('seekProfit');
+    socket.emit('seekProfit', profitTickerCriteria);
 }
