@@ -55,9 +55,11 @@ io.on('connection', function(client) {
             _.forEach(tickers, function(value) {
                 var res = { ticker: value };
                 bittrex.getticker({ market: value }, function(ticker) {
-                    if (ticker.result) {
+                    if (ticker && ticker.result) {
                         var marketName;
                         res.price = ticker.result.Last;
+                        res.bid = ticker.result.Bid;
+                        res.ask = ticker.result.Ask;
                         if (value.startsWith('BTC'))
                             marketName = 'USDT-BTC';
                         else if (value.startsWith('ETH'))
@@ -94,7 +96,7 @@ io.on('connection', function(client) {
                     console.log('balances:', balances);
                     // 2. Check if there are coins already - there must have been a buy order, sell!
                     if (balances.success && !_.isEmpty(balances.result)) {
-                        const coin = _.find(balances.result, ['Currency', data.currency.toUpperCase()]);
+                        const coin = _.find(balances.result, ['Currency', data.currency]);
                         if (!_.isEmpty(coin) && coin.Balance) {
                             if (coin.Balance == coin.Available) {
                                 console.log('sell - coin: ', coin);
@@ -108,7 +110,7 @@ io.on('connection', function(client) {
                         } else {
                             if (data.ticker.startsWith('BTC') || data.ticker.startsWith('ETH')) {
                                 const currency = (data.ticker.startsWith('BTC')) ? 'BTC' : 'ETH',
-                                    money = _.find(balances.result, ['Currency', currency.toUpperCase()]);
+                                    money = _.find(balances.result, ['Currency', currency]);
                                 console.log('money: ', money);
                                 // Only buy if there is enough money
                                 if (money && money.Available >= data.buyCost) {
@@ -209,9 +211,10 @@ io.on('connection', function(client) {
                         if (marketsDelta.MarketName.startsWith('BTC') || marketsDelta.MarketName.startsWith('ETH')) {
                             const market = (marketsDelta.MarketName.startsWith('BTC') ? 'USDT-BTC' : 'USDT-ETH');
                             bittrex.getticker({ market: market }, function(ticker) {
-                                if (ticker && ticker.result && passCriteria(marketsDelta, ticker.result.Last, criteria))
-                                    client.emit('profitTicker', marketsDelta);
-                                else
+                                if (ticker && ticker.result) {
+                                    if (passCriteria(marketsDelta, ticker.result.Last, criteria))
+                                        client.emit('profitTicker', marketsDelta);
+                                } else
                                     console.log('no result for market:' + market);
                             })
                         }

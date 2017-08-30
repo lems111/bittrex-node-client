@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="app.css" rel="stylesheet">
     <script src="/jquery/dist/jquery.js"></script>
@@ -58,7 +59,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div id="profit-ticker-container" class="btn-group" role="group" aria-label="Basic example">
+                    <div id="profit-ticker-container" class="btn-group-vertical" role="group" aria-label="Basic example">
                         <!-- Results Here -->
                     </div>
                 </div>
@@ -79,7 +80,8 @@
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <button class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="seekProfit()">Seek Profit</button>
+            <button id="show-profit-btn" class="btn btn-sm btn-outline-danger mr-sm-2" type="button" onclick="showProfitModal()"><i id="seek-profit-spinner" class="fa fa-spinner fa-pulse fa-1x fa-fw fa-inverse mr-sm-2"></i></button>
+            <button id="seek-profit" class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="seekProfit()">Seek Profit</button>
             <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
             <button id="stats" class="btn btn-sm btn-outline-warning my-2 my-sm-0" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
         </form>
@@ -147,9 +149,7 @@
     </div>  
     
     <script id="template-profit-ticker-button" type="text/template">
-        <div class="btn-group" role="group" aria-label="Basic example">
-            <button class="btn" onclick="tradeTicker({{data1}})"> {{data1}} <span class="badge badge-info">{{data2}}</span></button>
-        </div>
+        <button class="btn" onclick="updateTicker('{{data1}}')"> {{data1}} <span class="badge badge-info">{{data2}}</span></button>
     </script>
 
     <script id="template-trans-row" type="text/template">
@@ -237,7 +237,7 @@ $( "#process-update" ).on( "click", function() {
             updateMargin(parseFloat(input));
             break;
         case "Ticker":
-            updateTicker(input);
+            updateTicker(input.toUpperCase());
             break;
         case "Trade Units":
             updateTradeUnits(parseFloat(input));

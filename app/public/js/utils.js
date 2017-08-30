@@ -67,6 +67,12 @@ function resetConnection() {
 }
 
 function initUpdates() {
+    // reset UI
+    $("#show-profit-btn").hide();
+    $("#profit-search-modal").modal('hide');
+    $('#profit-ticker-container').children().remove();
+    $("#seek-profit").show();
+
     // start things
     socket.emit('ticker', config.tickers);
     socket.emit('messages', config.tickers);
@@ -222,5 +228,14 @@ function newTransaction(transArray, container) {
 }
 
 function seekProfit(){
+    $("#seek-profit").hide();
+    $("#seek-profit-spinner").show();
+    $("#show-profit-btn").show();
+    
     socket.emit('seekProfit', profitTickerCriteria);
+}
+
+function showProfitModal(){
+    if($("#profit-ticker-container").children(".btn").length > 0)
+        $("#profit-search-modal").modal('show')
 }
