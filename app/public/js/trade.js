@@ -1,28 +1,38 @@
 function trade() {
     if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate) {
-        tradeData = {
-            ticker: config.ticker,
-            buyRate: rates.belowRate,
-            sellRate: rates.aboveRate,
-            tradeUnits: config.tradeUnits,
-            currency: config.currency,
-            buyCost: rates.adjustedBelowRate
-        };
-        console.log('tradeData: ', tradeData);
-        localStorage.tradeData = JSON.stringify(tradeData);
-        socket.emit('trade', tradeData);
+        if (!shouldCancelTrade()) {
+            tradeData = {
+                ticker: config.ticker,
+                buyRate: rates.belowRate,
+                sellRate: rates.aboveRate,
+                tradeUnits: config.tradeUnits,
+                currency: config.currency,
+                buyCost: rates.adjustedBelowRate
+            };
+            console.log('tradeData: ', tradeData);
+            localStorage.tradeData = JSON.stringify(tradeData);
+            socket.emit('trade', tradeData);
+        } else
+            cancelTrade();
     }
 
+}
+
+function shouldCancelTrade() {
+    if (currentTrade && ticker && currentTrade.status === 'active' && currentTrade.order.OrderType === 'LIMIT_BUY' && (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
+        return true;
+    return false;
 }
 
 function cancelTrade() {
     tradeData = null;
     localStorage.tradeData = null;
-    socket.emit('cancelTrade', {ticker: config.ticker});
+    socket.emit('cancelTrade', { ticker: config.ticker });
 
 }
 
 function updateTradeStatus(data) {
+    currentTrade = data;
     console.log(data);
     if (tradeStatusInterval)
         clearInterval(tradeStatusInterval);
@@ -51,13 +61,13 @@ function updateTradeStatus(data) {
                 $("#orderStatus").text(data.msg).show();
                 break;
             default:
-                tradeStatus.orders = null;
+                currentTrade = null;
                 $("#orderStatus").text("").hide();
                 break;
         }
 
     } else {
-        tradeStatus.orders = null;
+        currentTrade = null;
         $("#orderStatus").text("").hide();
     }
 }

@@ -65,6 +65,5 @@ socket.on('profitTicker', function(data) {
         .replace(/{{data2}}/g, 'Bid: ' + data.Ask + ', Sell: ' + data.Bid + ', Last: ' + data.Last);
 
     $("#profit-ticker-container").prepend(tickerRow);
-    $("#seek-profit-spinner").hide();
-    $("#show-profit-btn").text('!')
+    $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
 });

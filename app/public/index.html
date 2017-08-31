@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="app.css" rel="stylesheet">
     <script src="/jquery/dist/jquery.js"></script>
@@ -80,7 +79,7 @@
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <button id="show-profit-btn" class="btn btn-sm btn-outline-danger mr-sm-2" type="button" onclick="showProfitModal()"><i id="seek-profit-spinner" class="fa fa-spinner fa-pulse fa-1x fa-fw fa-inverse mr-sm-2"></i></button>
+            <button id="show-profit-btn" class="btn btn-sm btn-outline-danger mr-sm-2" type="button" onclick="showProfitModal()">Found: <span id="profit-count" class="badge badge-light p-2">0</span></button>
             <button id="seek-profit" class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="seekProfit()">Seek Profit</button>
             <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
             <button id="stats" class="btn btn-sm btn-outline-warning my-2 my-sm-0" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
@@ -199,9 +198,9 @@
 
 </html>
 <script>
-var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.015, commission:.0025, tradeUnits: 10, frequency: 'repeat'},    
-    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval,tradeStatusInterval, 
-    profitTickerCriteria = {volume: 500000, tradeMargin: 0.00000050, tickerPriceCeiling: .20};
+var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat'},    
+    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval,tradeStatusInterval, currentTrade,
+    profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .20};
     
 restoreData();
 

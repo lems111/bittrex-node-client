@@ -233,9 +233,12 @@ function passCriteria(ticker, usd_price, criteria) {
     if (usd_volume >= criteria.volume) {
         const tickerUsdPrice = (ticker.Last * usd_price * ticker.Last) / ticker.Last;
         if (tickerUsdPrice <= criteria.tickerPriceCeiling) {
-            const tradeMargin = ticker.Ask - ticker.Bid;
-            if (tradeMargin >= criteria.tradeMargin) {
-                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', tradeMargin: ' + parseFloat(tradeMargin).toFixed(8));
+            const bidUsdPrice = (ticker.Bid * usd_price * ticker.Bid) / ticker.Bid,
+                askUsdPrice = (ticker.Ask * usd_price * ticker.Ask) / ticker.Ask;
+
+            const tradeGains = askUsdPrice - bidUsdPrice;
+            if (tradeGains >= criteria.gains) {
+                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', trade gains: ' + tradeGains);
                 return true;
             }
         }

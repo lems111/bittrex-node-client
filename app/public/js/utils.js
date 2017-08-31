@@ -109,13 +109,13 @@ function updateRates(rate) {
 
 function calculateFromRate(rate) {
     const usdPrice = (ticker.price * ticker.usdPrice * rate) / ticker.price,
-        belowPrice = usdPrice - config.margin,
-        belowRate = ((belowPrice * rate) / usdPrice),
+        belowRate = ticker.bid + (ticker.bid * config.margin),
+        belowPrice = (usdPrice * belowRate) / rate,
         adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
         adjustedBelowPrice = (ticker.price * ticker.usdPrice * adjustedBelowRate) / ticker.price;
 
-    const abovePrice = usdPrice,
-        aboveRate = ((abovePrice * rate) / usdPrice),
+    const aboveRate = ticker.ask - (ticker.ask * config.margin),
+        abovePrice = (usdPrice * aboveRate) / rate,
         // Includes commission adjusted price and rates
         adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
         adjustedAbovePrice = (ticker.price * ticker.usdPrice * adjustedAboveRate) / ticker.price,
@@ -227,15 +227,14 @@ function newTransaction(transArray, container) {
         $(container).prepend(transRow);
 }
 
-function seekProfit(){
+function seekProfit() {
     $("#seek-profit").hide();
-    $("#seek-profit-spinner").show();
     $("#show-profit-btn").show();
-    
+
     socket.emit('seekProfit', profitTickerCriteria);
 }
 
-function showProfitModal(){
-    if($("#profit-ticker-container").children(".btn").length > 0)
+function showProfitModal() {
+    if ($("#profit-ticker-container").children(".btn").length > 0)
         $("#profit-search-modal").modal('show')
 }
