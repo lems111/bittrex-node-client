@@ -69,7 +69,7 @@ io.on('connection', function(client) {
                             if (ticker.result) {
                                 res.usdPrice = ticker.result.Last;
                                 client.emit('ticker', res);
-                            }
+                            } else client.emit('ticker', null);
                         })
                     }
                 });
@@ -138,8 +138,10 @@ io.on('connection', function(client) {
                         client.emit('tradeStatus', tradeStatus);
                     } else
                         client.emit('tradeStatus', { status: 'error', msg: 'failed placing buying order' });
-                } else
+                } else {
+                    console.log('pendingBuy - tradeRes:', tradeRes);
                     client.emit('tradeStatus', tradeStatus);
+                }
             }).catch(function(err) {
                 console.log('trade err:', err);
                 client.emit('tradeStatus', null);
@@ -166,7 +168,7 @@ io.on('connection', function(client) {
             if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
                 console.log('cancelled:', cancelled);
                 // 2. Check if there are coins already - there must have been a buy order, sell!
-                if (cancelled.success) {
+                if (cancelled && cancelled.success) {
                     tradeStatus = { status: 'info', msg: 'cancelled order...ready to trade' };
                     client.emit('tradeStatus', tradeStatus);
                 } else {
@@ -214,10 +216,12 @@ io.on('connection', function(client) {
                                 if (ticker && ticker.result) {
                                     profitdata = determineProfit(marketsDelta, ticker.result.Last, criteria);
                                     if (profitdata.profitable) {
-                                        client.emit('profitTicker', {ticker: marketsDelta, gains: profitdata.gains});
+                                        client.emit('profitTicker', { ticker: marketsDelta, gains: profitdata.gains });
                                     }
-                                } else
+                                } else {
                                     console.log('no result for market:' + market);
+                                    client.emit('profitTicker', null);
+                                }
                             })
                         }
                     });
@@ -243,15 +247,15 @@ function determineProfit(ticker, usd_price, criteria) {
                 belowPrice = usd_price * belowRate,
                 aboveRate = ticker.Ask - (ticker.Ask * criteria.config.margin),
                 abovePrice = usd_price * aboveRate,
-                tradeGains = abovePrice - belowPrice,
                 adjustedBelowRate = ((belowRate * criteria.config.commission) + belowRate) * criteria.config.tradeUnits,
                 adjustedBelowPrice = usd_price * adjustedBelowRate,
                 adjustedAboveRate = (aboveRate - (aboveRate * criteria.config.commission)) * criteria.config.tradeUnits,
                 adjustedAbovePrice = usd_price * adjustedAboveRate,
                 gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
 
+            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
             if (gainsPrice >= criteria.gains) {
-                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', trade gains: ' + tradeGains);
+                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
                 ret.profitable = true;
                 ret.gains = gainsPrice;
             }

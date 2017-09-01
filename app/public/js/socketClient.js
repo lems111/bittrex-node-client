@@ -33,13 +33,16 @@ socket.on('broad', function(data) {
 });
 
 socket.on('ticker', function(data) {
-    const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
-        tickerRow = tickerRowTemplate.replace(/{{data1}}/g, data.ticker + ': ' + data.price + ' ($' + (data.price * data.usdPrice) + ')')
-        .replace(/{{data2}}/g, data.price);
+    if (data) {
+        const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
+            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, data.ticker + ': ' + data.price + ' ($' + (data.price * data.usdPrice) + ')')
+            .replace(/{{data2}}/g, data.price);
 
-    ticker = data;
-    localStorage.ticker = JSON.stringify(ticker);
-    $("#tickerContainer").prepend(tickerRow);
+        ticker = data;
+        localStorage.ticker = JSON.stringify(ticker);
+        $("#tickerContainer").prepend(tickerRow);
+    }
+    //updateRates(data.price);
 });
 
 socket.on('tradeStatus', function(data) {
@@ -59,15 +62,17 @@ socket.on('disconnect', () => {
 });
 
 socket.on('profitTicker', function(data) {
-    console.log('profitTicker: ', data);
-    const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
-        tickerRow = buttonTemplate.replace(/{{data1}}/g, data.ticker.MarketName)
-        .replace(/{{data2}}/g, 'Bid: ' + data.ticker.Ask + ',Sell: ' + data.ticker.Bid + ',Last: ' + data.ticker.Last + ',Gains: ' + data.gains);
+    if (data) {
+        console.log('profitTicker: ', data);
+        const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
+            tickerRow = buttonTemplate.replace(/{{data1}}/g, data.ticker.MarketName)
+            .replace(/{{data2}}/g, 'Bid: ' + data.ticker.Ask + ',Sell: ' + data.ticker.Bid + ',Last: ' + data.ticker.Last + ',Gains: ' + data.gains);
 
-    if($('button#' + data.ticker.MarketName).length)
-        $('button#' + data.ticker.MarketName).replaceWith(tickerRow);
-    else
-        $("#profit-ticker-container").prepend(tickerRow);
+        if ($('button#' + data.ticker.MarketName).length)
+            $('button#' + data.ticker.MarketName).replaceWith(tickerRow);
+        else
+            $("#profit-ticker-container").prepend(tickerRow);
 
-    $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
+        $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
+    }
 });

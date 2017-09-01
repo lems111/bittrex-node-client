@@ -11,8 +11,6 @@ function restoreData() {
 
     if (localStorage.ticker)
         ticker = JSON.parse(localStorage.ticker);
-
-    profitTickerCriteria.config = config;
 }
 
 function copy(el) {
@@ -73,6 +71,7 @@ function initUpdates() {
     $("#show-profit-btn").hide();
     $("#profit-search-modal").modal('hide');
     $('#profit-ticker-container').children().remove();
+    $("#profit-count").text('0');
     $("#seek-profit").show();
 
     // start things
@@ -113,16 +112,20 @@ function calculateFromRate(rate) {
     const usdPrice = ticker.usdPrice * rate,
         belowRate = ticker.bid + (ticker.bid * config.margin),
         belowPrice = ticker.usdPrice * belowRate,
-        adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
-        adjustedBelowPrice = ticker.usdPrice * adjustedBelowRate;
+        aboveRate = ticker.ask - (ticker.ask * config.margin),
+        abovePrice = ticker.usdPrice * aboveRate;
 
-    const aboveRate = ticker.ask - (ticker.ask * config.margin),
-        abovePrice = ticker.usdPrice * aboveRate,
-        // Includes commission adjusted price and rates
-        adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
+    var tradeUnits = config.tradeUnits,
+        adjustedBelowRate = ((belowRate * config.commission) + belowRate) * tradeUnits,
+        adjustedBelowPrice = ticker.usdPrice * adjustedBelowRate,
+        adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * tradeUnits,
         adjustedAbovePrice = ticker.usdPrice * adjustedAboveRate,
         gainsPrice = adjustedAbovePrice - adjustedBelowPrice,
         gainsRate = adjustedAboveRate - adjustedBelowRate;
+
+    gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
+    gainsRate = adjustedAboveRate - adjustedBelowRate;
+
     rates = {
         usdPrice: usdPrice,
         abovePrice: abovePrice,
@@ -134,7 +137,8 @@ function calculateFromRate(rate) {
         adjustedBelowPrice: adjustedBelowPrice,
         adjustedAbovePrice: adjustedAbovePrice,
         gainsPrice: gainsPrice,
-        gainsRate: parseFloat(gainsRate).toFixed(8)
+        gainsRate: parseFloat(gainsRate).toFixed(8),
+        tradeUnits: tradeUnits
     };
 
     localStorage.rates = JSON.stringify(rates);
@@ -155,10 +159,10 @@ function showStats() {
         totalSellCount = canceledSellCount + updatedSellCount + newSellCount,
         outstandingBuyCount = updatedBuyCount + newBuyCount - canceledBuyCount,
         outstandingSellCount = updatedSellCount + newSellCount - canceledSellCount,
-        msg = '';
+        msg = '', tradeUnits = rates.tradeUnits || config.tradeUnits;
 
-    msg += ('Trade Units: ' + config.tradeUnits + '<br/>');
-    msg += ('Margin: ' + config.margin + '¢<br/>');
+    msg += ('Trade Units: ' + tradeUnits + '<br/>');
+    msg += ('Margin: ' + config.margin + '%<br/>');
     msg += ('Total Buy Count: ' + totalBuyCount + '<br/>');
     msg += ('Outstanding Buy Count: ' + outstandingBuyCount + '<br/>');
     msg += ('Total Sell Count: ' + totalSellCount + '<br/>');
@@ -232,6 +236,7 @@ function newTransaction(transArray, container) {
 function seekProfit() {
     $("#seek-profit").hide();
     $("#show-profit-btn").show();
+    profitTickerCriteria.config = config;
 
     socket.emit('seekProfit', profitTickerCriteria);
 }

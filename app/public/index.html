@@ -198,8 +198,8 @@
 
 </html>
 <script>
-var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat'},    
-    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval,tradeStatusInterval, currentTrade,
+var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005},    
+    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval, currentTrade,
     profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .20, config: config};
     
 restoreData();
@@ -214,7 +214,7 @@ $( ".update-dropdown-item" ).on( "click", function() {
     $("#update-selection").text(type);
     switch(type){
         case "Margin":
-            $("#update-input").attr("placeholder", "enter value in ¢...ex: .012").val(config.margin);
+            $("#update-input").attr("placeholder", "enter value in %...ex: .05").val(config.margin);
             break;
         case "Ticker":
             $("#update-input").attr("placeholder", "enter ticker...ex: BTC-ETH").val(config.ticker);
