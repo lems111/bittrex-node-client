@@ -61,9 +61,13 @@ socket.on('disconnect', () => {
 socket.on('profitTicker', function(data) {
     console.log('profitTicker: ', data);
     const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
-        tickerRow = buttonTemplate.replace(/{{data1}}/g, data.MarketName)
-        .replace(/{{data2}}/g, 'Bid: ' + data.Ask + ', Sell: ' + data.Bid + ', Last: ' + data.Last);
+        tickerRow = buttonTemplate.replace(/{{data1}}/g, data.ticker.MarketName)
+        .replace(/{{data2}}/g, 'Bid: ' + data.ticker.Ask + ',Sell: ' + data.ticker.Bid + ',Last: ' + data.ticker.Last + ',Gains: ' + data.gains);
 
-    $("#profit-ticker-container").prepend(tickerRow);
+    if($('button#' + data.ticker.MarketName).length)
+        $('button#' + data.ticker.MarketName).replaceWith(tickerRow);
+    else
+        $("#profit-ticker-container").prepend(tickerRow);
+
     $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
 });

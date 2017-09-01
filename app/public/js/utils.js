@@ -11,6 +11,8 @@ function restoreData() {
 
     if (localStorage.ticker)
         ticker = JSON.parse(localStorage.ticker);
+
+    profitTickerCriteria.config = config;
 }
 
 function copy(el) {
@@ -108,17 +110,17 @@ function updateRates(rate) {
 }
 
 function calculateFromRate(rate) {
-    const usdPrice = (ticker.price * ticker.usdPrice * rate) / ticker.price,
+    const usdPrice = ticker.usdPrice * rate,
         belowRate = ticker.bid + (ticker.bid * config.margin),
-        belowPrice = (usdPrice * belowRate) / rate,
+        belowPrice = ticker.usdPrice * belowRate,
         adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
-        adjustedBelowPrice = (ticker.price * ticker.usdPrice * adjustedBelowRate) / ticker.price;
+        adjustedBelowPrice = ticker.usdPrice * adjustedBelowRate;
 
     const aboveRate = ticker.ask - (ticker.ask * config.margin),
-        abovePrice = (usdPrice * aboveRate) / rate,
+        abovePrice = ticker.usdPrice * aboveRate,
         // Includes commission adjusted price and rates
         adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
-        adjustedAbovePrice = (ticker.price * ticker.usdPrice * adjustedAboveRate) / ticker.price,
+        adjustedAbovePrice = ticker.usdPrice * adjustedAboveRate,
         gainsPrice = adjustedAbovePrice - adjustedBelowPrice,
         gainsRate = adjustedAboveRate - adjustedBelowRate;
     rates = {

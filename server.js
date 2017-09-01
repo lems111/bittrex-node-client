@@ -212,8 +212,10 @@ io.on('connection', function(client) {
                             const market = (marketsDelta.MarketName.startsWith('BTC') ? 'USDT-BTC' : 'USDT-ETH');
                             bittrex.getticker({ market: market }, function(ticker) {
                                 if (ticker && ticker.result) {
-                                    if (passCriteria(marketsDelta, ticker.result.Last, criteria))
-                                        client.emit('profitTicker', marketsDelta);
+                                    profitdata = determineProfit(marketsDelta, ticker.result.Last, criteria);
+                                    if (profitdata.profitable) {
+                                        client.emit('profitTicker', {ticker: marketsDelta, gains: profitdata.gains});
+                                    }
                                 } else
                                     console.log('no result for market:' + market);
                             })
@@ -228,21 +230,33 @@ io.on('connection', function(client) {
 
 server.listen(port);
 
-function passCriteria(ticker, usd_price, criteria) {
+function determineProfit(ticker, usd_price, criteria) {
+    var ret = { profitable: false, gains: 0 };
+
     usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
     if (usd_volume >= criteria.volume) {
-        const tickerUsdPrice = (ticker.Last * usd_price * ticker.Last) / ticker.Last;
+        const tickerUsdPrice = ticker.Last * usd_price;
         if (tickerUsdPrice <= criteria.tickerPriceCeiling) {
-            const bidUsdPrice = (ticker.Bid * usd_price * ticker.Bid) / ticker.Bid,
-                askUsdPrice = (ticker.Ask * usd_price * ticker.Ask) / ticker.Ask;
+            const bidUsdPrice = ticker.Bid * usd_price,
+                askUsdPrice = ticker.Ask * usd_price,
+                belowRate = ticker.Bid + (ticker.Bid * criteria.config.margin),
+                belowPrice = usd_price * belowRate,
+                aboveRate = ticker.Ask - (ticker.Ask * criteria.config.margin),
+                abovePrice = usd_price * aboveRate,
+                tradeGains = abovePrice - belowPrice,
+                adjustedBelowRate = ((belowRate * criteria.config.commission) + belowRate) * criteria.config.tradeUnits,
+                adjustedBelowPrice = usd_price * adjustedBelowRate,
+                adjustedAboveRate = (aboveRate - (aboveRate * criteria.config.commission)) * criteria.config.tradeUnits,
+                adjustedAbovePrice = usd_price * adjustedAboveRate,
+                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
 
-            const tradeGains = askUsdPrice - bidUsdPrice;
-            if (tradeGains >= criteria.gains) {
+            if (gainsPrice >= criteria.gains) {
                 console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', trade gains: ' + tradeGains);
-                return true;
+                ret.profitable = true;
+                ret.gains = gainsPrice;
             }
         }
     }
 
-    return false;
+    return ret;
 }
