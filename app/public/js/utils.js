@@ -30,15 +30,17 @@ function copy(el) {
 
 }
 
-function rateClicked(rate) {
-    if (rate) {
-        selectedRate = rate
-        highlightRates();
+function initTrade(marketName) {
+    const tickerData = $("#" + marketName + ".opportunity-row").data('ticker');
+    console.log(tickerData);
+    switchMarkets(marketName);
+    updateTicker(tickerData);
+    updateRates(tickerData.Last);
+}
 
-        if (ticker) {
-            updateRates(rate)
-        }
-    }
+function rateClicked(rate) {
+    if (rate && ticker)
+        updateRates(rate)
 }
 
 function updateTradeUnits(units) {
@@ -46,56 +48,26 @@ function updateTradeUnits(units) {
     localStorage.config = JSON.stringify(config);
 }
 
-function updateTicker(ticker) {
-    const fromIndex = ticker.indexOf('-') + 1;
+function switchMarkets(marketName) {
+    const fromIndex = marketName.indexOf('-') + 1;
 
-    config.tickers = [ticker];
-    config.ticker = ticker;
-    config.currency = ticker.substring(fromIndex);
+    config.marketName = marketName;
+    config.currency = marketName.substring(fromIndex);
 
     localStorage.config = JSON.stringify(config);
-    resetConnection();
+
+    initUpdates()
 }
 
-function resetConnection() {
-    console.log('tradesInterval:' + tradesInterval);
-    if (tradesInterval)
-        clearInterval(tradesInterval);
-
-    socket.emit('unsubscribe'); // in the disconnect callback, restart everything
-
-}
 
 function initUpdates() {
     // reset UI
-    $("#show-profit-btn").hide();
-    $("#profit-search-modal").modal('hide');
-    $('#profit-ticker-container').children().remove();
-    $("#profit-count").text('0');
-    $("#seek-profit").show();
+    $('#ticker-container').children().remove();
+    $('#opportunity-container').children().remove();
 
     // start things
-    socket.emit('ticker', config.tickers);
-    socket.emit('messages', config.tickers);
-    socket.emit('tradeStatus', { ticker: config.ticker });
-    tradesInterval = setInterval(function() { socket.emit('ticker', config.tickers) }, 30000);
-}
-
-function highlightRates() {
-    if (selectedRate) {
-        $(".highlighted-rate").each(function(index) {
-            $(this).removeClass("alert-warning alert-danger alert-success").addClass("rate");
-        });
-
-        $(".rate").each(function(index) {
-            if ($(this).text() == selectedRate)
-                $(this).removeClass("rate").addClass("alert-warning highlighted-rate");
-            else if ($(this).text() > selectedRate)
-                $(this).removeClass("rate").addClass("alert-danger highlighted-rate");
-            else if ($(this).text() < selectedRate)
-                $(this).removeClass("rate").addClass("alert-success highlighted-rate");
-        });
-    }
+    socket.emit('tradeStatus', { marketName: config.marketName });
+    socket.emit('marketStatus');
 }
 
 function updateRates(rate) {
@@ -149,24 +121,11 @@ function calculateFromRate(rate) {
 }
 
 function showStats() {
-    var canceledBuyCount = $("#buysContainer").children(".row .alert-danger").length,
-        updatedBuyCount = $("#buysContainer").children(".row .alert-info").length,
-        newBuyCount = $("#buysContainer").children(".row .alert-success").length,
-        canceledSellCount = $("#sellsContainer").children(".row .alert-danger").length,
-        updatedSellCount = $("#sellsContainer").children(".row .alert-info").length,
-        newSellCount = $("#sellsContainer").children(".row .alert-success").length,
-        totalBuyCount = canceledBuyCount + updatedBuyCount + newBuyCount,
-        totalSellCount = canceledSellCount + updatedSellCount + newSellCount,
-        outstandingBuyCount = updatedBuyCount + newBuyCount - canceledBuyCount,
-        outstandingSellCount = updatedSellCount + newSellCount - canceledSellCount,
-        msg = '', tradeUnits = rates.tradeUnits || config.tradeUnits;
+    var msg = '',
+        tradeUnits = rates.tradeUnits || config.tradeUnits;
 
     msg += ('Trade Units: ' + tradeUnits + '<br/>');
     msg += ('Margin: ' + config.margin + '%<br/>');
-    msg += ('Total Buy Count: ' + totalBuyCount + '<br/>');
-    msg += ('Outstanding Buy Count: ' + outstandingBuyCount + '<br/>');
-    msg += ('Total Sell Count: ' + totalSellCount + '<br/>');
-    msg += ('Outstanding Sell Count: ' + outstandingSellCount);
 
     $('#stats').popover('dispose')
         .popover({ trigger: 'focus', content: msg, placement: 'left', html: true })
@@ -175,7 +134,6 @@ function showStats() {
 
 function checkRate() {
     const newRate = parseFloat($("#new-rate").val());
-    selectedRate = newRate
     if (newRate)
         updateRates(newRate)
 }
@@ -188,60 +146,11 @@ function updateMargin(newMargin) {
 
 }
 
-function quantityClicked(quantity) {
-    if (quantity) {
-        selectedQuantity = quantity
-        $(".highlighted-quantity").each(function(index) {
-            $(this).removeClass("alert-warning alert-danger alert-success").addClass("quantity");
-        });
-
-        $(".quantity").each(function(index) {
-            if ($(this).text() == quantity)
-                $(this).removeClass("quantity").addClass("alert-warning highlighted-quantity");
-            else if ($(this).text() > quantity)
-                $(this).removeClass("quantity").addClass("alert-danger highlighted-quantity");
-            else if ($(this).text() < quantity)
-                $(this).removeClass("quantity").addClass("alert-success highlighted-quantity");
-        });
-    }
-}
-
-function newTransaction(transArray, container) {
-    var transRowTemplate = document.getElementById("template-trans-row").innerHTML,
-        orderType = '',
-        alertType = '',
-        transRow;
-
-    _.forEach(transArray, function(trans, key) {
-        if (trans.Type == 0) { //https://github.com/n0mad01/node.bittrex.api/issues/23#issuecomment-311090618
-            alertType = 'success';
-        } else if (trans.Type == 1) {
-            alertType = 'danger';
-        } else if (trans.Type == 2) {
-            alertType = 'info';
-        }
-
-        transRow = transRowTemplate.replace(/{{alertType}}/g, alertType)
-            .replace(/{{data2}}/g, trans.Rate)
-            .replace(/{{data3}}/g, trans.Quantity);
-    });
-
-    if ($(container + " .row").length == 10000)
-        $(container).children('.row').last().remove();
-
-    if (transRow)
-        $(container).prepend(transRow);
-}
-
-function seekProfit() {
-    $("#seek-profit").hide();
-    $("#show-profit-btn").show();
-    profitTickerCriteria.config = config;
-
-    socket.emit('seekProfit', profitTickerCriteria);
-}
-
-function showProfitModal() {
-    if ($("#profit-ticker-container").children(".btn").length > 0)
-        $("#profit-search-modal").modal('show')
+function getUsdPrice(marketName) {
+    if (marketName.startsWith('BTC'))
+        return btc_usdPrice;
+    else if (marketName.startsWith('ETH'))
+        return eth_usdPrice;
+    else
+        return null;
 }

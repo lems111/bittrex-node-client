@@ -2,7 +2,7 @@ function trade() {
     if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate && rates.adjustedBelowRate >= config.satoshiLimit) {
         if (!shouldCancelTrade()) {
             tradeData = {
-                ticker: config.ticker,
+                marketName: config.marketName,
                 buyRate: rates.belowRate,
                 sellRate: rates.aboveRate,
                 tradeUnits: rates.tradeUnits,
@@ -27,7 +27,7 @@ function shouldCancelTrade() {
 function cancelTrade() {
     tradeData = null;
     localStorage.tradeData = null;
-    socket.emit('cancelTrade', { ticker: config.ticker });
+    socket.emit('cancelTrade', { marketName: config.marketName });
 
 }
 

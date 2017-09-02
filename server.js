@@ -29,26 +29,17 @@ io.on('connection', function(client) {
         console.log(data);
     });
 
-    client.on('unsubscribe', function() {
-        console.log('unsubscribing...');
-        bittrex.websockets.client().end();
-        console.log('disconnecting...')
-        client.disconnect(true);
-    });
-
-    client.on('messages', function(tickers) {
-        var websocketsclient = bittrex.websockets.subscribe(tickers, function(data) {
-            if (data.M === 'updateExchangeState') {
+    client.on('marketStatus', function() {
+        var res, usdt_btc, usdt_eth, usd_volume;
+        var websocketsclient = bittrex.websockets.listen(function(data) {
+            if (data.M === 'updateSummaryState') {
                 data.A.forEach(function(data_for) {
-                    client.emit('broad', data_for);
-                    //console.log('Market Update for ' + data_for.MarketName, data_for);
+                    client.emit('markets', data_for);
                 });
             }
         });
 
-        //      client.broadcast.emit('broad',data);
-        //client.broadcast.emit('broad',data);
-    });
+    })
 
     client.on('ticker', function(tickers) {
         if (!_.isEmpty(tickers)) {
@@ -80,7 +71,7 @@ io.on('connection', function(client) {
     client.on('trade', function(data) {
         var tradeStatus = {};
         if (data) {
-            trade.getOpenedOrders(data.ticker).then(function(orders) {
+            trade.getOpenedOrders(data.marketName).then(function(orders) {
                 console.log('orders', orders);
                 // 1. if there are orders, there must be a trade active already
                 if (orders && orders.success && !_.isEmpty(orders.result)) {
@@ -101,21 +92,21 @@ io.on('connection', function(client) {
                             if (coin.Balance == coin.Available) {
                                 console.log('sell - coin: ', coin);
                                 tradeStatus.status = 'pendingSell';
-                                return trade.sellLimit({ market: data.ticker, quantity: data.tradeUnits, rate: data.sellRate });
+                                return trade.sellLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.sellRate });
                             } else {
                                 tradeStatus.status = 'pendingTrans';
                                 tradeStatus.coin = coin;
                                 return null;
                             }
                         } else {
-                            if (data.ticker.startsWith('BTC') || data.ticker.startsWith('ETH')) {
-                                const currency = (data.ticker.startsWith('BTC')) ? 'BTC' : 'ETH',
+                            if (data.marketName.startsWith('BTC') || data.marketName.startsWith('ETH')) {
+                                const currency = (data.marketName.startsWith('BTC')) ? 'BTC' : 'ETH',
                                     money = _.find(balances.result, ['Currency', currency]);
                                 console.log('money: ', money);
                                 // Only buy if there is enough money
                                 if (money && money.Available >= data.buyCost) {
                                     tradeStatus.status = 'pendingBuy';
-                                    return trade.buyLimit({ market: data.ticker, quantity: data.tradeUnits, rate: data.buyRate });
+                                    return trade.buyLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.buyRate });
                                 } else {
                                     tradeStatus = { status: 'error', msg: 'not enough funds in ' + currency };
                                     return null;
@@ -153,7 +144,7 @@ io.on('connection', function(client) {
     client.on('cancelTrade', function(data) {
         var tradeStatus = {};
 
-        trade.getOpenedOrders(data.ticker).then(function(orders) {
+        trade.getOpenedOrders(data.marketName).then(function(orders) {
             console.log('orders', orders);
             // 1. if there are orders, there must be a trade active already
             if (orders && orders.success && !_.isEmpty(orders.result)) {
@@ -185,7 +176,7 @@ io.on('connection', function(client) {
     client.on('tradeStatus', function(data) {
         var res = {};
         // 1. Are there any trades already?
-        trade.getOpenedOrders(data.ticker).then(function(orders) {
+        trade.getOpenedOrders(data.marketName).then(function(orders) {
             console.log('orders', orders);
             // 1. if there are orders, there must be a trade active already
             if (orders && orders.success && !_.isEmpty(orders.result)) {
@@ -201,66 +192,7 @@ io.on('connection', function(client) {
             console.log('trade err:', err);
             client.emit('tradeStatus', null);
         });
-    });
-
-    client.on('seekProfit', function(criteria) {
-        var res, usdt_btc, usdt_eth, usd_volume;
-        var websocketsclient = bittrex.websockets.listen(function(data) {
-            if (data.M === 'updateSummaryState') {
-                data.A.forEach(function(data_for) {
-                    data_for.Deltas.forEach(function(marketsDelta) {
-                        // We are only messing with BTC and ETH Trades
-                        if (marketsDelta.MarketName.startsWith('BTC') || marketsDelta.MarketName.startsWith('ETH')) {
-                            const market = (marketsDelta.MarketName.startsWith('BTC') ? 'USDT-BTC' : 'USDT-ETH');
-                            bittrex.getticker({ market: market }, function(ticker) {
-                                if (ticker && ticker.result) {
-                                    profitdata = determineProfit(marketsDelta, ticker.result.Last, criteria);
-                                    if (profitdata.profitable) {
-                                        client.emit('profitTicker', { ticker: marketsDelta, gains: profitdata.gains });
-                                    }
-                                } else {
-                                    console.log('no result for market:' + market);
-                                    client.emit('profitTicker', null);
-                                }
-                            })
-                        }
-                    });
-                });
-            }
-        });
-
-    })
+    });    
 })
 
 server.listen(port);
-
-function determineProfit(ticker, usd_price, criteria) {
-    var ret = { profitable: false, gains: 0 };
-
-    usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
-    if (usd_volume >= criteria.volume) {
-        const tickerUsdPrice = ticker.Last * usd_price;
-        if (tickerUsdPrice <= criteria.tickerPriceCeiling) {
-            const bidUsdPrice = ticker.Bid * usd_price,
-                askUsdPrice = ticker.Ask * usd_price,
-                belowRate = ticker.Bid + (ticker.Bid * criteria.config.margin),
-                belowPrice = usd_price * belowRate,
-                aboveRate = ticker.Ask - (ticker.Ask * criteria.config.margin),
-                abovePrice = usd_price * aboveRate,
-                adjustedBelowRate = ((belowRate * criteria.config.commission) + belowRate) * criteria.config.tradeUnits,
-                adjustedBelowPrice = usd_price * adjustedBelowRate,
-                adjustedAboveRate = (aboveRate - (aboveRate * criteria.config.commission)) * criteria.config.tradeUnits,
-                adjustedAbovePrice = usd_price * adjustedAboveRate,
-                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
-
-            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
-            if (gainsPrice >= criteria.gains) {
-                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
-                ret.profitable = true;
-                ret.gains = gainsPrice;
-            }
-        }
-    }
-
-    return ret;
-}

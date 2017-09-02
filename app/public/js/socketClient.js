@@ -5,74 +5,108 @@ socket.on('connect', function(data) {
 });
 
 
-socket.on('broad', function(data) {
-    const fillRowTemplate = document.getElementById("template-fill-row").innerHTML;
-    var fillRow = '';
-
-    if (!_.isEmpty(data.Buys))
-        newTransaction(data.Buys, '#buysContainer');
-
-    if (!_.isEmpty(data.Sells))
-        newTransaction(data.Sells, '#sellsContainer');
-
-    if (!_.isEmpty(data.Fills)) {
-        _.forEach(data.Fills, function(fill, key) {
-            timestamp = new Date(fill.TimeStamp + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
-            fillRow = fillRowTemplate.replace(/{{data1}}/g, fill.OrderType)
-                .replace(/{{data2}}/g, fill.Rate)
-                .replace(/{{data3}}/g, fill.Quantity)
-                .replace(/{{data4}}/g, timestamp);
-        });
-
-        if (fillRow)
-            $("#fillsContainer").prepend(fillRow);
-    }
-
-    highlightRates();
-    quantityClicked(selectedQuantity);
+socket.on('markets', function(data) {
+    updateUsdPrices(data.Deltas);
+    _.forEach(data.Deltas, function(ticker) {
+        if (ticker.MarketName === config.marketName)
+            updateTicker(ticker);
+        else
+            findProfitOpportunities(ticker);
+    });
 });
 
-socket.on('ticker', function(data) {
-    if (data) {
+function updateUsdPrices(markets) {
+    const usdt_btc = _.find(markets, { MarketName: 'USDT-BTC' }),
+        usdt_eth = _.find(markets, { MarketName: 'USDT-ETH' });
+
+    if (usdt_btc)
+        btc_usdPrice = usdt_btc.Last;
+
+    if (usdt_eth)
+        eth_usdPrice = usdt_eth.Last;
+}
+
+function updateTicker(data) {
+    const usdPrice = getUsdPrice(data.MarketName);
+
+    if (data && usdPrice) {
+        ticker = {
+            marketName: data.MarketName,
+            price: data.Last,
+            priceUsd: (data.Last * usdPrice),
+            bid: data.Bid,
+            bidUsd: (data.Bid * usdPrice),
+            ask: data.Ask,
+            askUsd: (data.Ask * usdPrice),
+            usdPrice: usdPrice
+        };
+
         const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
-            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, data.ticker + ': ' + data.price + ' ($' + (data.price * data.usdPrice) + ')')
-            .replace(/{{data2}}/g, data.price);
+            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.marketName)
+            .replace(/{{data2}}/g, ticker.price)
+            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd + ')')
+            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd + ')')
+            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd + ')');
 
-        ticker = data;
         localStorage.ticker = JSON.stringify(ticker);
-        $("#tickerContainer").prepend(tickerRow);
+        $("#ticker-container").prepend(tickerRow);
     }
-    //updateRates(data.price);
-});
+}
 
 socket.on('tradeStatus', function(data) {
     updateTradeStatus(data);
 });
 
-socket.on('disconnect', () => {
-    console.log('client successfully disconnected')
+function findProfitOpportunities(ticker) {
+    const usdPrice = getUsdPrice(ticker.MarketName),
+        profit = determineProfit(ticker, usdPrice);
 
-    // clear things
-    $('#buysContainer').children().remove();
-    $('#sellsContainer').children().remove();
-    $('#fillsContainer').children().remove();
-    $('#tickerContainer').children().remove();
-    socket.open();
-    initUpdates();
-});
+    if (ticker && profit.profitable) {
+        console.log('profitTicker: ', ticker);
+        const tickerRowTemplate = document.getElementById("template-opportunity-row").innerHTML,
+            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.MarketName)
+            .replace(/{{data2}}/g, 'Bid: ' + ticker.Bid)
+            .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask )
+            .replace(/{{data4}}/g, 'Last: ' + ticker.Last )
+            .replace(/{{data5}}/g, 'Gains: ' + profit.gains);
 
-socket.on('profitTicker', function(data) {
-    if (data) {
-        console.log('profitTicker: ', data);
-        const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
-            tickerRow = buttonTemplate.replace(/{{data1}}/g, data.ticker.MarketName)
-            .replace(/{{data2}}/g, 'Bid: ' + data.ticker.Ask + ',Sell: ' + data.ticker.Bid + ',Last: ' + data.ticker.Last + ',Gains: ' + data.gains);
-
-        if ($('button#' + data.ticker.MarketName).length)
-            $('button#' + data.ticker.MarketName).replaceWith(tickerRow);
+        if ($("#" + ticker.MarketName + ".opportunity-row").length)
+            $("#" + ticker.MarketName + ".opportunity-row").replaceWith(tickerRow);
         else
-            $("#profit-ticker-container").prepend(tickerRow);
+            $("#opportunity-container").prepend(tickerRow);
 
-        $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
+        $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
+
     }
-});
+}
+
+function determineProfit(ticker, usd_price) {
+    var ret = { profitable: false, gains: 0 };
+
+    usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
+    if (usd_volume >= profitTickerCriteria.volume) {
+        const tickerUsdPrice = ticker.Last * usd_price;
+        if (tickerUsdPrice <= profitTickerCriteria.tickerPriceCeiling) {
+            const bidUsdPrice = ticker.Bid * usd_price,
+                askUsdPrice = ticker.Ask * usd_price,
+                belowRate = ticker.Bid + (ticker.Bid * config.margin),
+                belowPrice = usd_price * belowRate,
+                aboveRate = ticker.Ask - (ticker.Ask * config.margin),
+                abovePrice = usd_price * aboveRate,
+                adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
+                adjustedBelowPrice = usd_price * adjustedBelowRate,
+                adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
+                adjustedAbovePrice = usd_price * adjustedAboveRate,
+                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
+
+            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
+            if (gainsPrice >= profitTickerCriteria.gains) {
+                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
+                ret.profitable = true;
+                ret.gains = gainsPrice;
+            }
+        }
+    }
+
+    return ret;
+}
