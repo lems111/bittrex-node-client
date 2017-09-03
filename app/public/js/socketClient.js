@@ -76,7 +76,7 @@ function checkIfProfitable(ticker) {
             $("#opportunity-container").prepend(tickerRow);
 
         $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
-        if(config.autoTrade === 'on' && !tradeData)
+        if(config.autoTrade === 'on' && _.isEmpty(tradeData))
             initTrade(ticker.MarketName);
     }
 }
