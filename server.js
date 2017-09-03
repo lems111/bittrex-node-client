@@ -24,10 +24,10 @@ io.on('connection', function(client) {
     console.log('Client connected...');
 
     client.on('join', function(data) {
-        console.log('Client Connected');
-        if (data && data.apikey && data.apisecret) {
-            config.bittrex.apikey = data.apikey;
-            config.bittrex.apisecret = data.apisecret;
+        console.log('joined client', data);
+        if (data && data.apiKey && data.apiSecret) {
+            config.bittrex.apikey = data.apiKey;
+            config.bittrex.apisecret = data.apiSecret;
             bittrex.options(config.bittrex);
         }
     });

@@ -55,6 +55,11 @@
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
                         <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Auto Trade</span>
+                        <input id="update-auto-trade" type="text" class="update-setting form-control" aria-label="Text input" placeholder="on or off">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -158,7 +163,7 @@
 
 </html>
 <script>
-var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:''},    
+var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'on'},    
     rates, tradeData, ticker, tradesInterval, currentTrade, btc_usdPrice, eth_usdPrice,
     profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .25};
     
@@ -181,11 +186,13 @@ $( "#process-update" ).on( "click", function() {
         tradeFreq = $("#update-frequency").val();
         apiKey = $("#update-api-key").val();
         apiSecret = $("#update-api-secret").val();
+        autoTrade = $("#update-auto-trade").val();
 
     updateMargin(parseFloat(margin));
     switchMarkets(marketName.toUpperCase());
     updateTradeUnits(parseFloat(tradeUnits));
     updateApi(apiKey, apiSecret);
+    config.autoTrade = autoTrade;
     $("#update-modal").modal('hide')
 });
 </script>
