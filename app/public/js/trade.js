@@ -1,7 +1,7 @@
 function trade() {
     if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate && rates.adjustedBelowRate >= config.satoshiLimit) {
         if (!shouldCancelTrade() && proceedWithTrade()) {
-            tradeData = {
+            const newTradeData = {
                 marketName: config.marketName,
                 buyRate: rates.belowRate,
                 sellRate: rates.aboveRate,
@@ -10,8 +10,8 @@ function trade() {
                 buyCost: rates.adjustedBelowRate,
                 gainsPrice: rates.gainsPrice
             };
-            updateActiveTrade(tradeData);
-            socket.emit('trade', tradeData);
+            updateActiveTrade(newTradeData);
+            socket.emit('trade', newTradeData);
             return true;
         } else
             cancelTrade();
@@ -30,26 +30,25 @@ function proceedWithTrade() {
 }
 
 function shouldCancelTrade() {
-    if (!_.isEmpty(currentTrade) && !_.isEmpty(ticker) && currentTrade.status === 'active' && currentTrade.order.OrderType === 'LIMIT_BUY' && currentTrade.Quantity >= currentTrade.QuantityRemaining &&
+    if (!_.isEmpty(tradeData) && !_.isEmpty(ticker) && tradeData.status === 'active' && tradeData.order.OrderType === 'LIMIT_BUY' && (tradeData.order.Quantity == tradeData.order.QuantityRemaining) &&
          (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
         return true;
     return false;
 }
 
 function cancelTrade() {
-    currentTrade = null;
     updateActiveTrade(null);
     socket.emit('cancelTrade', { marketName: config.marketName });
 
 }
 
 function updateTradeStatus(data) {
-    currentTrade = data;
     console.log(data);
 
     if (!_.isEmpty(data)) {
         switch (data.status) {
             case 'active':
+                updateActiveTrade(data);
                 order = data.order;
                 opened = new Date(order.Opened + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
                 msg = order.OrderType + ' - Rate: ' + order.Limit + ', Quantity: ' + order.Quantity + ', Remaining: ' + order.QuantityRemaining + ', Opened: ' + opened;
@@ -68,20 +67,32 @@ function updateTradeStatus(data) {
                 break;
             case 'error':
             case 'info':
-                currentTrade = null;
                 updateActiveTrade(null);
                 $("#orderStatus").text(data.msg).show();
                 break;
             default:
-                currentTrade = null;
                 updateActiveTrade(null);
                 $("#orderStatus").text("").hide();
                 break;
         }
 
     } else {
-        currentTrade = null;
         updateActiveTrade(null);
         $("#orderStatus").text("").hide();
+    }
+}
+
+function updateActiveTrade(newTradeData) {
+
+    if (newTradeData) {
+        localStorage.tradeData = tradeData = _.merge(tradeData, newTradeData);
+        const msg = tradeData.marketName + ' - Buy Rate: ' + tradeData.buyRate + ' Sell Rate: ' + tradeData.sellRate + ' Trade Units: ' + tradeData.tradeUnits + ' Gains: ' + tradeData.gainsPrice;
+        localStorage.tradeData = JSON.stringify(tradeData);
+        $("#active-trade-msg").text(msg);
+        $("#active-trade-row").show();
+    } else {
+        localStorage.tradeData = tradeData = newTradeData;
+        $("#active-trade-msg").text('');
+        $("#active-trade-row").hide();
     }
 }

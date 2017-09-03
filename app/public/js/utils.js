@@ -162,17 +162,3 @@ function getUsdPrice(marketName) {
     else
         return null;
 }
-
-function updateActiveTrade(tradeData) {
-    if (tradeData) {
-        const msg = tradeData.marketName + ' - Buy Rate: ' + tradeData.buyRate + ' Sell Rate: ' + tradeData.sellRate + ' Trade Units: ' + tradeData.tradeUnits + ' Gains: ' + tradeData.gainsPrice;
-        console.log('tradeData: ', tradeData);
-        localStorage.tradeData = JSON.stringify(tradeData);
-        $("#active-trade-msg").text(msg);
-        $("#active-trade-row").show();
-    } else {
-        localStorage.tradeData = tradeData = null;
-        $("#active-trade-msg").text('');
-        $("#active-trade-row").hide();
-    }
-}
