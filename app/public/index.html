@@ -26,37 +26,31 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Margin</span>
                         <input id="update-margin" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Market Name</span>
                         <input id="update-market-name" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market name...ex: BTC-ETH">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Trade Units</span>
                         <input id="update-trade-units" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter trade size...ex: 10 units">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Frequency</span>
                         <input id="update-frequency" type="text" class="update-setting form-control" aria-label="Text input" placeholder="trade freq...ex: once or repeat">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Key</span>
                         <input id="update-api-key" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api key">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
                         <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
-                    <br>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Auto Trade</span>
                         <input id="update-auto-trade" type="text" class="update-setting form-control" aria-label="Text input" placeholder="on or off">
                     </div>
@@ -141,7 +135,7 @@
         </div>
     </div>  
     <script id="template-opportunity-row" type="text/template">
-        <div id="{{data1}}" class="opportunity-row row">
+        <div id="{{data1}}" class="opportunity-row row mb-1">
             <div class="col-12 col-md-auto col-lg-auto" onclick="initTrade('{{data1}}')">
                 {{data1}} <span class="badge badge-pill badge-warning p-2">{{data2}}</span>
                 <span class="badge badge-pill badge-warning p-2">{{data3}}</span>
@@ -151,7 +145,7 @@
         </div>
     </script>
     <script id="template-ticker-row" type="text/template">
-        <div class="ticker-row row">
+        <div class="ticker-row row mb-1">
             <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
                 {{data1}} <span class="badge badge-pill badge-info p-2">{{data3}}</span>
                 <span class="badge badge-pill badge-info p-2">{{data4}}</span>
