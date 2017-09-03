@@ -1,7 +1,7 @@
 var socket = io.connect('http://localhost:3000');
 
 socket.on('connect', function(data) {
-    socket.emit('join', 'Hello World from client');
+    socket.emit('join', {apiKey: config.apiKey, apiSecret: config.apiSecret});
 });
 
 
@@ -11,7 +11,7 @@ socket.on('markets', function(data) {
         if (ticker.MarketName === config.marketName)
             updateTicker(ticker);
         else
-            findProfitOpportunities(ticker);
+            checkIfProfitable(ticker);
     });
 });
 
@@ -57,7 +57,7 @@ socket.on('tradeStatus', function(data) {
     updateTradeStatus(data);
 });
 
-function findProfitOpportunities(ticker) {
+function checkIfProfitable(ticker) {
     const usdPrice = getUsdPrice(ticker.MarketName),
         profit = determineProfit(ticker, usdPrice);
 
@@ -76,7 +76,8 @@ function findProfitOpportunities(ticker) {
             $("#opportunity-container").prepend(tickerRow);
 
         $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
-
+        if(!currentTrade)
+            initTrade(ticker.MarketName);
     }
 }
 

@@ -27,43 +27,38 @@
                 </div>
                 <div class="modal-body">
                     <div class="input-group">
-                        <div class="input-group-btn">
-                            <button id="update-selection" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Select
-                            </button>
-                            <div class="dropdown-menu">
-                                <a class="update-dropdown-item dropdown-item" href="#">Margin</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Switch Markets</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Trade Units</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Frequency</a>
-                            </div>
-                        </div>
-                        <input id="update-input" type="text" class="form-control" aria-label="Text input with dropdown button">
+                        <span class="input-group-addon" id="basic-addon1">Margin</span>
+                        <input id="update-margin" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
+                    </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Market Name</span>
+                        <input id="update-market-name" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market name...ex: BTC-ETH">
+                    </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Trade Units</span>
+                        <input id="update-trade-units" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter trade size...ex: 10 units">
+                    </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Frequency</span>
+                        <input id="update-frequency" type="text" class="update-setting form-control" aria-label="Text input" placeholder="trade freq...ex: once or repeat">
+                    </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Bittrex API Key</span>
+                        <input id="update-api-key" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api key">
+                    </div>
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
+                        <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button id="process-update" type="button" class="btn btn-primary">Update</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="profit-search-modal" tabindex="-1" role="dialog" aria-labelledby="header-title" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="header-title">Update value</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="profit-ticker-container" class="btn-group-vertical" role="group" aria-label="Basic example">
-                        <!-- Results Here -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -119,6 +114,12 @@
         </form>
     </nav>
     <div class="jumbotron">
+        <div id="active-trade-row" class="row">
+            <div class="col-12 col-md-auto col-lg-auto">
+                <span id="active-trade-msg" class="badge badge-warning p-2"></span>
+            </div>
+        </div>
+        <br>
         <div class="row">
             <div id="ticker" class="col-12 col-md-auto col-lg-auto">
                 <h4>Ticker Updates</h3>
@@ -157,50 +158,34 @@
 
 </html>
 <script>
-var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005},    
+var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:''},    
     rates, tradeData, ticker, tradesInterval, currentTrade, btc_usdPrice, eth_usdPrice,
-    profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .20};
+    profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .25};
     
 restoreData();
 
 $( document ).ready(function() {
-    console.log( "ready!" );
     initUpdates();
-});
-
-$( ".update-dropdown-item" ).on( "click", function() {
-    const type = $(this).text();
-    $("#update-selection").text(type);
-    switch(type){
-        case "Margin":
-            $("#update-input").attr("placeholder", "enter value in %...ex: .05").val(config.margin);
-            break;
-        case "Switch Markets":
-            $("#update-input").attr("placeholder", "enter market name...ex: BTC-ETH").val(config.marketName);
-            break;
-        case "Trade Units":
-            $("#update-input").attr("placeholder", "enter trade size...ex: 10 units").val(config.tradeUnits);
-            break;
-        case "Frequency":
-            $("#update-input").attr("placeholder", "once or repeat").val(config.frequency);
-            break;
-    }
+    $("#update-margin").val(config.margin);
+    $("#update-market-name").val(config.marketName);
+    $("#update-trade-units").val(config.tradeUnits);
+    $("#update-frequency").val(config.frequency);
+    $("#update-api-key").val(config.apiKey);
+    $("#update-api-secret").val(config.apiSecret);
 });
 
 $( "#process-update" ).on( "click", function() {
-    const type = $("#update-selection").text(), input = $("#update-input").val();
+    const margin = $("#update-margin").val(),
+        marketName = $("#update-market-name").val(),
+        tradeUnits = $("#update-trade-units").val(),
+        tradeFreq = $("#update-frequency").val();
+        apiKey = $("#update-api-key").val();
+        apiSecret = $("#update-api-secret").val();
 
-    switch(type){
-        case "Margin":
-            updateMargin(parseFloat(input));
-            break;
-        case "Switch Markets":
-            switchMarkets(input.toUpperCase());
-            break;
-        case "Trade Units":
-            updateTradeUnits(parseFloat(input));
-            break;
-    }
+    updateMargin(parseFloat(margin));
+    switchMarkets(marketName.toUpperCase());
+    updateTradeUnits(parseFloat(tradeUnits));
+    updateApi(apiKey, apiSecret);
     $("#update-modal").modal('hide')
 });
 </script>

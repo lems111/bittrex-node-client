@@ -36,6 +36,7 @@ function initTrade(marketName) {
     switchMarkets(marketName);
     updateTicker(tickerData);
     updateRates(tickerData.Last);
+    trade();
 }
 
 function rateClicked(rate) {
@@ -49,16 +50,23 @@ function updateTradeUnits(units) {
 }
 
 function switchMarkets(marketName) {
-    const fromIndex = marketName.indexOf('-') + 1;
+    if (marketName !== config.marketName) {
+        const fromIndex = marketName.indexOf('-') + 1;
 
-    config.marketName = marketName;
-    config.currency = marketName.substring(fromIndex);
+        config.marketName = marketName;
+        config.currency = marketName.substring(fromIndex);
 
-    localStorage.config = JSON.stringify(config);
+        localStorage.config = JSON.stringify(config);
 
-    initUpdates()
+        initUpdates()
+    }
 }
 
+function updateApi(apiKey, apiSecret) {
+    config.apiKey = apiKey;
+    config.apiSecret = apiSecret;
+    localStorage.config = JSON.stringify(config);
+}
 
 function initUpdates() {
     // reset UI
@@ -73,8 +81,8 @@ function initUpdates() {
 function updateRates(rate) {
     const rates = calculateFromRate(rate);
     $("#currentUSD").text(rate + ': $' + rates.usdPrice);
-    $("#overCurrent").text('Sell: ' + rates.aboveRate + ': $' + rates.abovePrice);
-    $("#belowCurrent").text('Buy: ' + rates.belowRate + ': $' + rates.belowPrice);
+    $("#overCurrent").text('Sell: ' + rates.aboveRate + ': $' + rates.abovePrice).prop('title', ticker.ask);
+    $("#belowCurrent").text('Buy: ' + rates.belowRate + ': $' + rates.belowPrice).prop('title', ticker.bid);
     $("#adjustedOverCurrent").text('Sell: ' + rates.adjustedAboveRate + ': $' + rates.adjustedAbovePrice);
     $("#adjustedBelowCurrent").text('Buy: ' + rates.adjustedBelowRate + ': $' + rates.adjustedBelowPrice);
     $("#gains").text('Gains: ' + rates.gainsRate + ' ($' + rates.gainsPrice + ')');
@@ -153,4 +161,18 @@ function getUsdPrice(marketName) {
         return eth_usdPrice;
     else
         return null;
+}
+
+function updateActiveTrade(tradeData) {
+    if (tradeData) {
+        const msg = tradeData.marketName + ' - Buy Rate: ' + tradeData.buyRate + ' Sell Rate: ' + tradeData.sellRate + ' Trade Units: ' + tradeData.tradeUnits + ' Gains: ' + tradeData.gainsPrice;
+        console.log('tradeData: ', tradeData);
+        localStorage.tradeData = JSON.stringify(tradeData);
+        $("#active-trade-msg").text(msg);
+        $("#active-trade-row").show();
+    } else {
+        localStorage.tradeData = tradeData = null;
+        $("#active-trade-msg").text('');
+        $("#active-trade-row").hide();
+    }
 }

@@ -1,32 +1,44 @@
 function trade() {
     if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate && rates.adjustedBelowRate >= config.satoshiLimit) {
-        if (!shouldCancelTrade()) {
+        if (!shouldCancelTrade() && proceedWithTrade()) {
             tradeData = {
                 marketName: config.marketName,
                 buyRate: rates.belowRate,
                 sellRate: rates.aboveRate,
                 tradeUnits: rates.tradeUnits,
                 currency: config.currency,
-                buyCost: rates.adjustedBelowRate
+                buyCost: rates.adjustedBelowRate,
+                gainsPrice: rates.gainsPrice
             };
-            console.log('tradeData: ', tradeData);
-            localStorage.tradeData = JSON.stringify(tradeData);
+            updateActiveTrade(tradeData);
             socket.emit('trade', tradeData);
+            return true;
         } else
             cancelTrade();
     } else if (config.satoshiLimit > rates.adjustedBelowRate)
         updateTradeStatus({ status: 'error', msg: 'buying price is below satoshi limit (' + config.satoshiLimit + ')' });
+
+    return false;
+}
+
+function proceedWithTrade() {
+    if (rates.gainsPrice >= profitTickerCriteria.gains)
+        return true;
+    else
+        console.log('stopped trade - rates:', rates);
+    return false;
 }
 
 function shouldCancelTrade() {
-    if (currentTrade && ticker && currentTrade.status === 'active' && currentTrade.order.OrderType === 'LIMIT_BUY' && (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
+    if (!_.isEmpty(currentTrade) && !_.isEmpty(ticker) && currentTrade.status === 'active' && currentTrade.order.OrderType === 'LIMIT_BUY' && currentTrade.Quantity >= currentTrade.QuantityRemaining &&
+         (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
         return true;
     return false;
 }
 
 function cancelTrade() {
-    tradeData = null;
-    localStorage.tradeData = null;
+    currentTrade = null;
+    updateActiveTrade(null);
     socket.emit('cancelTrade', { marketName: config.marketName });
 
 }
@@ -56,16 +68,20 @@ function updateTradeStatus(data) {
                 break;
             case 'error':
             case 'info':
+                currentTrade = null;
+                updateActiveTrade(null);
                 $("#orderStatus").text(data.msg).show();
                 break;
             default:
                 currentTrade = null;
+                updateActiveTrade(null);
                 $("#orderStatus").text("").hide();
                 break;
         }
 
     } else {
         currentTrade = null;
+        updateActiveTrade(null);
         $("#orderStatus").text("").hide();
     }
 }

@@ -11,8 +11,6 @@ var express = require('express'),
     bittrex = require('node.bittrex.api'),
     trade = require('./app/trade.js');
 
-bittrex.options(config.bittrex);
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.json({ type: 'application/vnd.api+json' }))
@@ -26,7 +24,12 @@ io.on('connection', function(client) {
     console.log('Client connected...');
 
     client.on('join', function(data) {
-        console.log(data);
+        console.log('Client Connected');
+        if (data && data.apikey && data.apisecret) {
+            config.bittrex.apikey = data.apikey;
+            config.bittrex.apisecret = data.apisecret;
+            bittrex.options(config.bittrex);
+        }
     });
 
     client.on('marketStatus', function() {
@@ -192,7 +195,7 @@ io.on('connection', function(client) {
             console.log('trade err:', err);
             client.emit('tradeStatus', null);
         });
-    });    
+    });
 })
 
 server.listen(port);
