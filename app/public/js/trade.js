@@ -31,20 +31,18 @@ function proceedWithTrade() {
 
 function shouldCancelTrade() {
     if (!_.isEmpty(tradeData) && !_.isEmpty(ticker) && tradeData.status === 'active' && tradeData.order.OrderType === 'LIMIT_BUY' && (tradeData.order.Quantity == tradeData.order.QuantityRemaining) &&
-         (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
+        (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
         return true;
     return false;
 }
 
 function cancelTrade() {
     updateActiveTrade(null);
-    socket.emit('cancelTrade', { marketName: config.marketName });
+    socket.emit('cancelTrade', { marketName: config.marketName, currency: config.currency });
 
 }
 
 function updateTradeStatus(data) {
-    console.log(data);
-
     if (!_.isEmpty(data)) {
         switch (data.status) {
             case 'active':
@@ -86,6 +84,7 @@ function updateActiveTrade(newTradeData) {
 
     if (newTradeData) {
         localStorage.tradeData = tradeData = _.merge(tradeData, newTradeData);
+        console.log('updateActiveTrade:', tradeData);
         const msg = tradeData.marketName + ' - Buy Rate: ' + tradeData.buyRate + ' Sell Rate: ' + tradeData.sellRate + ' Trade Units: ' + tradeData.tradeUnits + ' Gains: ' + tradeData.gainsPrice;
         localStorage.tradeData = JSON.stringify(tradeData);
         $("#active-trade-msg").text(msg);

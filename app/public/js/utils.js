@@ -74,7 +74,6 @@ function initUpdates() {
     $('#opportunity-container').children().remove();
 
     // start things
-    socket.emit('tradeStatus', { marketName: config.marketName });
     socket.emit('marketStatus');
 }
 

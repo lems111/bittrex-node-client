@@ -73,6 +73,7 @@ io.on('connection', function(client) {
 
     client.on('trade', function(data) {
         var tradeStatus = {};
+        console.log('trade: ', data);
         if (data) {
             trade.getOpenedOrders(data.marketName).then(function(orders) {
                 console.log('orders', orders);
@@ -133,7 +134,7 @@ io.on('connection', function(client) {
                     } else
                         client.emit('tradeStatus', { status: 'error', msg: 'failed placing buying order' });
                 } else {
-                    console.log('pendingBuy - tradeRes:', tradeRes);
+                    console.log('tradeStatus: ', tradeStatus);
                     client.emit('tradeStatus', tradeStatus);
                 }
             }).catch(function(err) {
@@ -146,6 +147,7 @@ io.on('connection', function(client) {
 
     client.on('cancelTrade', function(data) {
         var tradeStatus = {};
+        console.log('cancelTrade: ', data);
 
         trade.getOpenedOrders(data.marketName).then(function(orders) {
             console.log('orders', orders);
@@ -153,44 +155,40 @@ io.on('connection', function(client) {
             if (orders && orders.success && !_.isEmpty(orders.result)) {
                 if (orders.result.length > 1)
                     console.log('ALERT - ', orders.result);
+                tradeStatus.status = 'cancelling';
                 return trade.cancel({ uuid: orders.result[0].OrderUuid });
-            } else {
-                tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
-                return null;
+            } else { // we should check our wallet, in case that our buy order was already completed and there are coins that should be sold
+                tradeStatus.status = 'balance';
+                return trade.getBalances();
             }
-        }).then(function(cancelled) {
-            if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
-                console.log('cancelled:', cancelled);
+        }).then(function(resp) {
+            if (tradeStatus.status === 'cancelling') {
+                console.log('cancelled:', resp);
                 // 2. Check if there are coins already - there must have been a buy order, sell!
-                if (cancelled && cancelled.success) {
+                if (resp && resp.success) {
                     tradeStatus = { status: 'info', msg: 'cancelled order...ready to trade' };
                     client.emit('tradeStatus', tradeStatus);
                 } else {
                     tradeStatus = { status: 'error', msg: 'failed to cancel order' };
                     client.emit('tradeStatus', tradeStatus);
                 }
-            } else client.emit('tradeStatus', tradeStatus);
-        }).catch(function(err) {
-            console.log('trade err:', err);
-            client.emit('tradeStatus', null);
-        });
-    });
-
-    client.on('tradeStatus', function(data) {
-        var res = {};
-        // 1. Are there any trades already?
-        trade.getOpenedOrders(data.marketName).then(function(orders) {
-            console.log('orders', orders);
-            // 1. if there are orders, there must be a trade active already
-            if (orders && orders.success && !_.isEmpty(orders.result)) {
-                if (orders.result.length > 1)
-                    console.log('ALERT - ', orders.result);
-                const order = orders.result[0],
-                    opened = new Date(order.Opened + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" }),
-                    msg = 'UPDATE TRADE (' + order.OrderType + ') - Rate: ' + order.Limit + ', Quantity: ' + order.Quantity + ', Remaining: ' + order.QuantityRemaining + ', Opened: ' + opened;
-                client.emit('tradeStatus', { status: 'info', msg: msg });
+            } else if (_tradeStatus.status === 'balance') { // only proceed in here, if there wasn't any action yet
+                console.log('balances:', resp);
+                // 2. Check if there are coins already - there must have been a buy order, sell!
+                if (resp.success && !_.isEmpty(resp.result)) {
+                    const coin = _.find(resp.result, ['Currency', data.currency]);
+                    if (!_.isEmpty(coin) && coin.Balance) {
+                        tradeStatus.status = 'pendingTrans';
+                        tradeStatus.coin = coin;
+                    } else {
+                        console.log('coin: ', coin);
+                        tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
+                    }
+                } else
+                    tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
             } else
-                client.emit('tradeStatus', { status: 'info', msg: 'no active orders...ready to trade' });
+                tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
+            client.emit('tradeStatus', tradeStatus);
         }).catch(function(err) {
             console.log('trade err:', err);
             client.emit('tradeStatus', null);
