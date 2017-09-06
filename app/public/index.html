@@ -157,9 +157,9 @@
 
 </html>
 <script>
-var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'on'},    
-    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice,
-    profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .25};
+var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 50, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off'},    
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, blacklistTickers = ['BTC-KMD', 'BTC-GNT', 'BTC-TKN', 'BTC-OK', 'BTC-SNT', 'BTC-POT', 'BTC-FLO', 'BTC-PINK', 'BTC-PTOY']
+    profitTickerCriteria = {volume: 500000, gains: 0.2, tickerPriceCeiling: 2};
     
 restoreData();
 

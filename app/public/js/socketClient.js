@@ -10,7 +10,7 @@ socket.on('markets', function(data) {
     _.forEach(data.Deltas, function(ticker) {
         if (ticker.MarketName === config.marketName)
             updateTicker(ticker);
-        else
+        else if(!blacklistTickers.includes(ticker.MarketName))
             checkIfProfitable(ticker);
     });
 });
