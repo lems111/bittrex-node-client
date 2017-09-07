@@ -26,33 +26,6 @@ function updateUsdPrices(markets) {
         eth_usdPrice = usdt_eth.Last;
 }
 
-function updateTicker(data) {
-    const usdPrice = getUsdPrice(data.MarketName);
-
-    if (data && usdPrice) {
-        ticker = {
-            marketName: data.MarketName,
-            price: data.Last,
-            priceUsd: (data.Last * usdPrice),
-            bid: data.Bid,
-            bidUsd: (data.Bid * usdPrice),
-            ask: data.Ask,
-            askUsd: (data.Ask * usdPrice),
-            usdPrice: usdPrice
-        };
-
-        const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
-            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.marketName)
-            .replace(/{{data2}}/g, ticker.price)
-            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd + ')')
-            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd + ')')
-            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd + ')');
-
-        localStorage.ticker = JSON.stringify(ticker);
-        $("#ticker-container").prepend(tickerRow);
-    }
-}
-
 socket.on('tradeStatus', function(data) {
     updateTradeStatus(data);
 });
@@ -63,17 +36,17 @@ function checkIfProfitable(ticker) {
 
     if (ticker && profit.profitable) {
         console.log('profitTicker: ', ticker);
-        const tickerRowTemplate = document.getElementById("template-opportunity-row").innerHTML,
-            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.MarketName)
+        const opportunityRowTemplate = document.getElementById("template-opportunity-row").innerHTML,
+            opportunityRow = opportunityRowTemplate.replace(/{{data1}}/g, ticker.MarketName)
             .replace(/{{data2}}/g, 'Bid: ' + ticker.Bid)
             .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask )
             .replace(/{{data4}}/g, 'Last: ' + ticker.Last )
             .replace(/{{data5}}/g, 'Gains: ' + profit.gains);
 
         if ($("#" + ticker.MarketName + ".opportunity-row").length)
-            $("#" + ticker.MarketName + ".opportunity-row").replaceWith(tickerRow);
+            $("#" + ticker.MarketName + ".opportunity-row").replaceWith(opportunityRow);
         else
-            $("#opportunity-container").prepend(tickerRow);
+            $("#opportunity-container").prepend(opportunityRow);
 
         $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
         if(config.autoTrade === 'on' && _.isEmpty(tradeData))

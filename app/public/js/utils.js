@@ -34,9 +34,42 @@ function initTrade(marketName) {
     const tickerData = $("#" + marketName + ".opportunity-row").data('ticker');
     console.log(tickerData);
     switchMarkets(marketName);
-    updateTicker(tickerData);
-    updateRates(tickerData.Last);
-    trade();
+    
+    if (updateTicker(tickerData)) {
+        updateRates(tickerData.Last);
+        trade();
+    }
+}
+
+
+function updateTicker(data) {
+    const usdPrice = getUsdPrice(data.MarketName);
+
+    if (data && usdPrice) {
+        ticker = {
+            marketName: data.MarketName,
+            price: data.Last,
+            priceUsd: (data.Last * usdPrice),
+            bid: data.Bid,
+            bidUsd: (data.Bid * usdPrice),
+            ask: data.Ask,
+            askUsd: (data.Ask * usdPrice),
+            usdPrice: usdPrice
+        };
+
+        const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
+            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.marketName)
+            .replace(/{{data2}}/g, ticker.price)
+            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd + ')')
+            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd + ')')
+            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd + ')');
+
+        localStorage.ticker = JSON.stringify(ticker);
+        $("#ticker-container").prepend(tickerRow);
+
+        return true; // success
+    }
+    return false;
 }
 
 function rateClicked(rate) {

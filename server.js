@@ -113,8 +113,14 @@ io.on('connection', function(client) {
                                 logMessage('money: ' + JSON.stringify(money, null, 4));
                                 // Only buy if there is enough money
                                 if (money && money.Available >= data.buyCost) {
-                                    tradeStatus.status = 'pendingBuy';
-                                    return trade.buyLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.buyRate });
+                                    if (data.status !== 'pendingBuy') { // only proceed, if there isn't a pending buy
+                                        tradeStatus.status = 'pendingBuy';
+                                        return trade.buyLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.buyRate });
+                                    } else {
+                                        tradeStatus.status = 'pendingTrans';
+                                        tradeStatus.coin = coin;
+                                        return null;
+                                    }
                                 } else {
                                     tradeStatus = { status: 'error', msg: 'not enough funds in ' + currency };
                                     return null;
@@ -130,7 +136,7 @@ io.on('connection', function(client) {
                     }
                 } else return null;
             }).then(function(tradeRes) {
-                if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
+                if (!_.isEmpty(tradeStatus) && (tradeStatus.status === 'pendingSell' || tradeStatus.status === 'pendingBuy')) {
                     logMessage('tradeRes: ' + JSON.stringify(tradeRes, null, 4));
                     if (tradeRes && tradeRes.success && !_.isEmpty(tradeRes.result)) {
                         tradeStatus.msg = 'success - order pending, uuid: ' + tradeRes.result.uuid;
@@ -158,7 +164,7 @@ io.on('connection', function(client) {
             // 1. if there are orders, there must be a trade active already
             if (orders && orders.success && !_.isEmpty(orders.result)) {
                 if (orders.result.length > 1)
-                    logMessage('ALERT - ' + orders.result);
+                    logMessage('ALERT - ', orders.result);
                 tradeStatus.status = 'cancelling';
                 return trade.cancel({ uuid: orders.result[0].OrderUuid });
             } else { // we should check our wallet, in case that our buy order was already completed and there are coins that should be sold

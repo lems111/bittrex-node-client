@@ -11,7 +11,7 @@ function trade() {
                 gainsPrice: rates.gainsPrice
             };
             updateActiveTrade(newTradeData);
-            socket.emit('trade', newTradeData);
+            socket.emit('trade', tradeData);
             return true;
         } else
             cancelTrade();
