@@ -158,13 +158,14 @@
 </html>
 <script>
 var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 100, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off'},    
-    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, blacklistTickers = ['BTC-KMD', 'BTC-GNT', 'ETH-GNT', 'BTC-TKN', 'ETH-TKN', 'BTC-OK', 'BTC-POT', 'BTC-FLO', 'BTC-PINK']
-    profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 5};
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, blacklistTickers = ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-SNGLS', 'BTC-CPC']
+    profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 2};
     
 restoreData();
 
 $( document ).ready(function() {
-    initUpdates();
+    console.log('start app');
+    initUpdates(true);
     $("#update-margin").val(config.margin);
     $("#update-market-name").val(config.marketName);
     $("#update-trade-units").val(config.tradeUnits);

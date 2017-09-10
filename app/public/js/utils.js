@@ -30,18 +30,6 @@ function copy(el) {
 
 }
 
-function initTrade(marketName) {
-    const tickerData = $("#" + marketName + ".opportunity-row").data('ticker');
-    console.log(tickerData);
-    switchMarkets(marketName);
-    
-    if (updateTicker(tickerData)) {
-        updateRates(tickerData.Last);
-        trade();
-    }
-}
-
-
 function updateTicker(data) {
     const usdPrice = getUsdPrice(data.MarketName);
 
@@ -82,6 +70,12 @@ function updateTradeUnits(units) {
     localStorage.config = JSON.stringify(config);
 }
 
+function updateApi(apiKey, apiSecret) {
+    config.apiKey = apiKey;
+    config.apiSecret = apiSecret;
+    localStorage.config = JSON.stringify(config);
+}
+
 function switchMarkets(marketName) {
     if (marketName !== config.marketName) {
         const fromIndex = marketName.indexOf('-') + 1;
@@ -91,23 +85,29 @@ function switchMarkets(marketName) {
 
         localStorage.config = JSON.stringify(config);
 
-        initUpdates()
+        initUpdates(false)
     }
 }
 
-function updateApi(apiKey, apiSecret) {
-    config.apiKey = apiKey;
-    config.apiSecret = apiSecret;
-    localStorage.config = JSON.stringify(config);
-}
-
-function initUpdates() {
+function initUpdates(initMarketStatus) {
     // reset UI
     $('#ticker-container').children().remove();
     $('#opportunity-container').children().remove();
 
     // start things
-    socket.emit('marketStatus');
+    if(initMarketStatus)
+        socket.emit('marketStatus');
+}
+
+function initTrade(marketName) {
+    const tickerData = $("#" + marketName + ".opportunity-row").data('ticker');
+    console.log(tickerData);
+    switchMarkets(marketName);
+    
+    if (updateTicker(tickerData)) {
+        updateRates(tickerData.Last);
+        trade();
+    }
 }
 
 function updateRates(rate) {

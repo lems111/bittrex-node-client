@@ -5,7 +5,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: 'API KEY COMES FROM CLIENT',
                     apisecret: 'API SECRET COMES FROM CLIENT',
-                    verbose: false
+                    verbose: true
                 }
             }
         case 'prod':
@@ -13,7 +13,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: 'API KEY COMES FROM CLIENT',
                     apisecret: 'API SECRET COMES FROM CLIENT',
-                    verbose: false
+                    verbose: true
                 }
             }
         default:
@@ -21,7 +21,7 @@ module.exports = function(env) {
                 bittrex: {
                     apikey: 'API KEY COMES FROM CLIENT',
                     apisecret: 'API SECRET COMES FROM CLIENT',
-                    verbose: false
+                    verbose: true
                 }
             }
     }

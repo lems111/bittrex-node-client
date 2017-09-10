@@ -5,14 +5,15 @@ socket.on('connect', function(data) {
 });
 
 
-socket.on('markets', function(data) {
-    updateUsdPrices(data.Deltas);
-    _.forEach(data.Deltas, function(ticker) {
-        if (ticker.MarketName === config.marketName)
-            updateTicker(ticker);
-        else if(!blacklistTickers.includes(ticker.MarketName))
-            checkIfProfitable(ticker);
+socket.on('markets', function(markets) {
+    updateUsdPrices(markets);
+    _.forEach(markets, function(market) {
+        if (market.MarketName === config.marketName)
+            updateTicker(market);
+        else if(!blacklistTickers.includes(market.MarketName))
+            checkIfProfitable(market);
     });
+    setTimeout(function(){socket.emit('marketStatus')}, 2000);
 });
 
 function updateUsdPrices(markets) {

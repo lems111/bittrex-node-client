@@ -37,15 +37,13 @@ io.on('connection', function(client) {
     });
 
     client.on('marketStatus', function() {
-        var res, usdt_btc, usdt_eth, usd_volume;
-        var websocketsclient = bittrex.websockets.listen(function(data) {
-            if (data.M === 'updateSummaryState') {
-                data.A.forEach(function(data_for) {
-                    client.emit('markets', data_for);
-                });
-            }
+        trade.getMarketSummaries().then(function(markets) {
+            if (markets && markets.success && !_.isEmpty(markets.result)) 
+                client.emit('markets', markets.result);
+        }).catch(function(err) {
+            logMessage('marketStatus err: ' + JSON.stringify(err, null, 4));
+            client.emit('markets', null);
         });
-
     })
 
     client.on('ticker', function(tickers) {

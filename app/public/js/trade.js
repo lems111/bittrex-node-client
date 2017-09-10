@@ -37,7 +37,6 @@ function shouldCancelTrade() {
 }
 
 function cancelTrade() {
-    updateActiveTrade(null);
     socket.emit('cancelTrade', { marketName: config.marketName, currency: config.currency });
 
 }
@@ -64,6 +63,8 @@ function updateTradeStatus(data) {
                 setTimeout(trade, 2000);
                 break;
             case 'error':
+                $("#orderStatus").text(data.msg).show();
+                break;
             case 'info':
                 updateActiveTrade(null);
                 $("#orderStatus").text(data.msg).show();
