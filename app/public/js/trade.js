@@ -53,12 +53,14 @@ function updateTradeStatus(data) {
                 setTimeout(trade, 2000);
                 break;
             case 'pendingTrans':
-                msg = 'Pending Transaction' + data.coin.Currency + ' Balance: ' + data.coin.Balance + ' Available: ' + data.coin.Available + ' Pending: ' + data.coin.Pending;
+                updateActiveTrade({ status: data.status });
+                msg = 'Pending Transaction: ' + data.coin.Currency + ' Balance: ' + data.coin.Balance + ' Available: ' + data.coin.Available + ' Pending: ' + data.coin.Pending;
                 $("#orderStatus").text(msg).show();
                 setTimeout(trade, 2000);
                 break;
             case 'pendingBuy':
             case 'pendingSell':
+                updateActiveTrade({ status: data.status });
                 $("#orderStatus").text(data.msg).show();
                 setTimeout(trade, 2000);
                 break;

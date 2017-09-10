@@ -65,6 +65,19 @@ function rateClicked(rate) {
         updateRates(rate)
 }
 
+function updateAutoTrade() {
+    if ($('#auto-trade').hasClass('active')) {
+        config.autoTrade = 'off';
+        $('#auto-trade').removeClass('active').text('Auto Trade (off)');
+    } else {
+        config.autoTrade = 'on';
+        $('#auto-trade').addClass('active').text('Auto Trade (on)');
+    }
+    $('#auto-trade').button('toggle');
+
+    localStorage.config = JSON.stringify(config);
+}
+
 function updateTradeUnits(units) {
     config.tradeUnits = units;
     localStorage.config = JSON.stringify(config);
@@ -94,8 +107,13 @@ function initUpdates(initMarketStatus) {
     $('#ticker-container').children().remove();
     $('#opportunity-container').children().remove();
 
+    if (config.autoTrade === 'on') 
+        $('#auto-trade').addClass("active").attr("aria-pressed", true).text('Auto Trade (on)');
+    else
+        $('#auto-trade').removeClass("active").text('Auto Trade (off)');
+
     // start things
-    if(initMarketStatus)
+    if (initMarketStatus)
         socket.emit('marketStatus');
 }
 
@@ -103,7 +121,7 @@ function initTrade(marketName) {
     const tickerData = $("#" + marketName + ".opportunity-row").data('ticker');
     console.log(tickerData);
     switchMarkets(marketName);
-    
+
     if (updateTicker(tickerData)) {
         updateRates(tickerData.Last);
         trade();

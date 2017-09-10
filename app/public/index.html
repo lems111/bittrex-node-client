@@ -50,10 +50,6 @@
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
                         <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
-                    <div class="input-group mb-2">
-                        <span class="input-group-addon" id="basic-addon1">Auto Trade</span>
-                        <input id="update-auto-trade" type="text" class="update-setting form-control" aria-label="Text input" placeholder="on or off">
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -108,6 +104,9 @@
             </li>
         </ul>
         <form class="form-inline">
+            <button id="auto-trade" type="button" class="btn btn-sm btn-warning mr-sm-2" data-toggle="button" aria-pressed="true" autocomplete="off" onclick="updateAutoTrade()">
+                Auto Trade
+            </button>
             <button class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="trade()">Trade</button>
             <button class="btn btn-sm btn-outline-danger" type="button" onclick="cancelTrade()">Cancel Trade</button>
         </form>
@@ -181,13 +180,11 @@ $( "#process-update" ).on( "click", function() {
         tradeFreq = $("#update-frequency").val();
         apiKey = $("#update-api-key").val();
         apiSecret = $("#update-api-secret").val();
-        autoTrade = $("#update-auto-trade").val();
 
     updateMargin(parseFloat(margin));
     switchMarkets(marketName.toUpperCase());
     updateTradeUnits(parseFloat(tradeUnits));
     updateApi(apiKey, apiSecret);
-    config.autoTrade = autoTrade;
     $("#update-modal").modal('hide')
 });
 </script>
