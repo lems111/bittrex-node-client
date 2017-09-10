@@ -10,8 +10,10 @@ var express = require('express'),
     _ = require('lodash'),
     bittrex = require('node.bittrex.api'),
     trade = require('./app/trade.js');
-
-bittrex.options(config.bittrex);
+const { Console } = require('console'),
+    fs = require("fs"),
+    output = fs.createWriteStream('./console.log'),
+    logger = new Console(output);
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -23,32 +25,26 @@ app.get('*', function(req, res) {
 });
 
 io.on('connection', function(client) {
-    console.log('Client connected...');
+    logMessage('Client connected...');
 
     client.on('join', function(data) {
-        console.log(data);
+        logMessage('joined client, data: ' + JSON.stringify(data, null, 4));
+        if (data && data.apiKey && data.apiSecret) {
+            config.bittrex.apikey = data.apiKey;
+            config.bittrex.apisecret = data.apiSecret;
+            bittrex.options(config.bittrex);
+        }
     });
 
-    client.on('unsubscribe', function() {
-        console.log('unsubscribing...');
-        bittrex.websockets.client().end();
-        console.log('disconnecting...')
-        client.disconnect(true);
-    });
-
-    client.on('messages', function(tickers) {
-        var websocketsclient = bittrex.websockets.subscribe(tickers, function(data) {
-            if (data.M === 'updateExchangeState') {
-                data.A.forEach(function(data_for) {
-                    client.emit('broad', data_for);
-                    //console.log('Market Update for ' + data_for.MarketName, data_for);
-                });
-            }
+    client.on('marketStatus', function() {
+        trade.getMarketSummaries().then(function(markets) {
+            if (markets && markets.success && !_.isEmpty(markets.result)) 
+                client.emit('markets', markets.result);
+        }).catch(function(err) {
+            logMessage('marketStatus err: ' + JSON.stringify(err, null, 4));
+            client.emit('markets', null);
         });
-
-        //      client.broadcast.emit('broad',data);
-        //client.broadcast.emit('broad',data);
-    });
+    })
 
     client.on('ticker', function(tickers) {
         if (!_.isEmpty(tickers)) {
@@ -79,13 +75,14 @@ io.on('connection', function(client) {
 
     client.on('trade', function(data) {
         var tradeStatus = {};
+        logMessage('trade: ' + JSON.stringify(data, null, 4));
         if (data) {
-            trade.getOpenedOrders(data.ticker).then(function(orders) {
-                console.log('orders', orders);
+            trade.getOpenedOrders(data.marketName).then(function(orders) {
+                logMessage('orders: ' + JSON.stringify(orders, null, 4));
                 // 1. if there are orders, there must be a trade active already
                 if (orders && orders.success && !_.isEmpty(orders.result)) {
                     if (orders.result.length > 1)
-                        console.log('ALERT - ', orders.result);
+                        logMessage('ALERT - ' + orders.result);
                     tradeStatus.status = 'active';
                     tradeStatus.order = orders.result[0];
                     return null;
@@ -93,29 +90,35 @@ io.on('connection', function(client) {
                     return trade.getBalances();
             }).then(function(balances) {
                 if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
-                    console.log('balances:', balances);
+                    logMessage('balances: ' + JSON.stringify(balances, null, 4));
                     // 2. Check if there are coins already - there must have been a buy order, sell!
                     if (balances.success && !_.isEmpty(balances.result)) {
                         const coin = _.find(balances.result, ['Currency', data.currency]);
                         if (!_.isEmpty(coin) && coin.Balance) {
                             if (coin.Balance == coin.Available) {
-                                console.log('sell - coin: ', coin);
+                                logMessage('sell - coin: ' + JSON.stringify(coin, null, 4));
                                 tradeStatus.status = 'pendingSell';
-                                return trade.sellLimit({ market: data.ticker, quantity: data.tradeUnits, rate: data.sellRate });
+                                return trade.sellLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.sellRate });
                             } else {
                                 tradeStatus.status = 'pendingTrans';
                                 tradeStatus.coin = coin;
                                 return null;
                             }
                         } else {
-                            if (data.ticker.startsWith('BTC') || data.ticker.startsWith('ETH')) {
-                                const currency = (data.ticker.startsWith('BTC')) ? 'BTC' : 'ETH',
+                            if (data.marketName.startsWith('BTC') || data.marketName.startsWith('ETH')) {
+                                const currency = (data.marketName.startsWith('BTC')) ? 'BTC' : 'ETH',
                                     money = _.find(balances.result, ['Currency', currency]);
-                                console.log('money: ', money);
+                                logMessage('money: ' + JSON.stringify(money, null, 4));
                                 // Only buy if there is enough money
                                 if (money && money.Available >= data.buyCost) {
-                                    tradeStatus.status = 'pendingBuy';
-                                    return trade.buyLimit({ market: data.ticker, quantity: data.tradeUnits, rate: data.buyRate });
+                                    if (data.status !== 'pendingBuy') { // only proceed, if there isn't a pending buy
+                                        tradeStatus.status = 'pendingBuy';
+                                        return trade.buyLimit({ market: data.marketName, quantity: data.tradeUnits, rate: data.buyRate });
+                                    } else {
+                                        tradeStatus.status = 'pendingTrans';
+                                        tradeStatus.coin = coin;
+                                        return null;
+                                    }
                                 } else {
                                     tradeStatus = { status: 'error', msg: 'not enough funds in ' + currency };
                                     return null;
@@ -131,19 +134,19 @@ io.on('connection', function(client) {
                     }
                 } else return null;
             }).then(function(tradeRes) {
-                if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
-                    console.log('tradeRes:', tradeRes);
+                if (!_.isEmpty(tradeStatus) && (tradeStatus.status === 'pendingSell' || tradeStatus.status === 'pendingBuy')) {
+                    logMessage('tradeRes: ' + JSON.stringify(tradeRes, null, 4));
                     if (tradeRes && tradeRes.success && !_.isEmpty(tradeRes.result)) {
                         tradeStatus.msg = 'success - order pending, uuid: ' + tradeRes.result.uuid;
                         client.emit('tradeStatus', tradeStatus);
                     } else
                         client.emit('tradeStatus', { status: 'error', msg: 'failed placing buying order' });
                 } else {
-                    console.log('pendingBuy - tradeRes:', tradeRes);
+                    logMessage('tradeStatus: ' + JSON.stringify(tradeStatus, null, 4));
                     client.emit('tradeStatus', tradeStatus);
                 }
             }).catch(function(err) {
-                console.log('trade err:', err);
+                logMessage('trade err: ' + JSON.stringify(err, null, 4));
                 client.emit('tradeStatus', null);
             });
         } else
@@ -152,115 +155,58 @@ io.on('connection', function(client) {
 
     client.on('cancelTrade', function(data) {
         var tradeStatus = {};
+        logMessage('cancelTrade: ' + JSON.stringify(data, null, 4));
 
-        trade.getOpenedOrders(data.ticker).then(function(orders) {
-            console.log('orders', orders);
+        trade.getOpenedOrders(data.marketName).then(function(orders) {
+            logMessage('orders: ' + JSON.stringify(orders, null, 4));
             // 1. if there are orders, there must be a trade active already
             if (orders && orders.success && !_.isEmpty(orders.result)) {
                 if (orders.result.length > 1)
-                    console.log('ALERT - ', orders.result);
+                    logMessage('ALERT - ', orders.result);
+                tradeStatus.status = 'cancelling';
                 return trade.cancel({ uuid: orders.result[0].OrderUuid });
-            } else {
-                tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
-                return null;
+            } else { // we should check our wallet, in case that our buy order was already completed and there are coins that should be sold
+                tradeStatus.status = 'balance';
+                return trade.getBalances();
             }
-        }).then(function(cancelled) {
-            if (_.isEmpty(tradeStatus)) { // only proceed in here, if there wasn't any action yet
-                console.log('cancelled:', cancelled);
+        }).then(function(resp) {
+            if (tradeStatus.status === 'cancelling') {
+                logMessage('cancelled: ' + JSON.stringify(resp, null, 4));
                 // 2. Check if there are coins already - there must have been a buy order, sell!
-                if (cancelled && cancelled.success) {
+                if (resp && resp.success) {
                     tradeStatus = { status: 'info', msg: 'cancelled order...ready to trade' };
                     client.emit('tradeStatus', tradeStatus);
                 } else {
                     tradeStatus = { status: 'error', msg: 'failed to cancel order' };
                     client.emit('tradeStatus', tradeStatus);
                 }
-            } else client.emit('tradeStatus', tradeStatus);
-        }).catch(function(err) {
-            console.log('trade err:', err);
-            client.emit('tradeStatus', null);
-        });
-    });
-
-    client.on('tradeStatus', function(data) {
-        var res = {};
-        // 1. Are there any trades already?
-        trade.getOpenedOrders(data.ticker).then(function(orders) {
-            console.log('orders', orders);
-            // 1. if there are orders, there must be a trade active already
-            if (orders && orders.success && !_.isEmpty(orders.result)) {
-                if (orders.result.length > 1)
-                    console.log('ALERT - ', orders.result);
-                const order = orders.result[0],
-                    opened = new Date(order.Opened + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" }),
-                    msg = 'UPDATE TRADE (' + order.OrderType + ') - Rate: ' + order.Limit + ', Quantity: ' + order.Quantity + ', Remaining: ' + order.QuantityRemaining + ', Opened: ' + opened;
-                client.emit('tradeStatus', { status: 'info', msg: msg });
+            } else if (tradeStatus.status === 'balance') { // only proceed in here, if there wasn't any action yet
+                logMessage('balances: ' + JSON.stringify(resp, null, 4));
+                // 2. Check if there are coins already - there must have been a buy order, sell!
+                if (resp.success && !_.isEmpty(resp.result)) {
+                    const coin = _.find(resp.result, ['Currency', data.currency]);
+                    if (!_.isEmpty(coin) && coin.Balance) {
+                        tradeStatus.status = 'pendingTrans';
+                        tradeStatus.coin = coin;
+                    } else {
+                        logMessage('coin: ' + JSON.stringify(coin, null, 4));
+                        tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
+                    }
+                } else
+                    tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
             } else
-                client.emit('tradeStatus', { status: 'info', msg: 'no active orders...ready to trade' });
+                tradeStatus = { status: 'info', msg: 'no open orders...ready to trade' };
+            client.emit('tradeStatus', tradeStatus);
         }).catch(function(err) {
-            console.log('trade err:', err);
+            logMessage('trade err: ' + JSON.stringify(err, null, 4));
             client.emit('tradeStatus', null);
         });
     });
-
-    client.on('seekProfit', function(criteria) {
-        var res, usdt_btc, usdt_eth, usd_volume;
-        var websocketsclient = bittrex.websockets.listen(function(data) {
-            if (data.M === 'updateSummaryState') {
-                data.A.forEach(function(data_for) {
-                    data_for.Deltas.forEach(function(marketsDelta) {
-                        // We are only messing with BTC and ETH Trades
-                        if (marketsDelta.MarketName.startsWith('BTC') || marketsDelta.MarketName.startsWith('ETH')) {
-                            const market = (marketsDelta.MarketName.startsWith('BTC') ? 'USDT-BTC' : 'USDT-ETH');
-                            bittrex.getticker({ market: market }, function(ticker) {
-                                if (ticker && ticker.result) {
-                                    profitdata = determineProfit(marketsDelta, ticker.result.Last, criteria);
-                                    if (profitdata.profitable) {
-                                        client.emit('profitTicker', { ticker: marketsDelta, gains: profitdata.gains });
-                                    }
-                                } else {
-                                    console.log('no result for market:' + market);
-                                    client.emit('profitTicker', null);
-                                }
-                            })
-                        }
-                    });
-                });
-            }
-        });
-
-    })
 })
 
 server.listen(port);
 
-function determineProfit(ticker, usd_price, criteria) {
-    var ret = { profitable: false, gains: 0 };
-
-    usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
-    if (usd_volume >= criteria.volume) {
-        const tickerUsdPrice = ticker.Last * usd_price;
-        if (tickerUsdPrice <= criteria.tickerPriceCeiling) {
-            const bidUsdPrice = ticker.Bid * usd_price,
-                askUsdPrice = ticker.Ask * usd_price,
-                belowRate = ticker.Bid + (ticker.Bid * criteria.config.margin),
-                belowPrice = usd_price * belowRate,
-                aboveRate = ticker.Ask - (ticker.Ask * criteria.config.margin),
-                abovePrice = usd_price * aboveRate,
-                adjustedBelowRate = ((belowRate * criteria.config.commission) + belowRate) * criteria.config.tradeUnits,
-                adjustedBelowPrice = usd_price * adjustedBelowRate,
-                adjustedAboveRate = (aboveRate - (aboveRate * criteria.config.commission)) * criteria.config.tradeUnits,
-                adjustedAbovePrice = usd_price * adjustedAboveRate,
-                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
-
-            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
-            if (gainsPrice >= criteria.gains) {
-                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
-                ret.profitable = true;
-                ret.gains = gainsPrice;
-            }
-        }
-    }
-
-    return ret;
+function logMessage(msg) {
+    const timestamp = new Date().toISOString();
+    logger.log(timestamp + ' - ' + msg);
 }

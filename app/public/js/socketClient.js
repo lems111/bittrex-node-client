@@ -1,78 +1,87 @@
 var socket = io.connect('http://localhost:3000');
 
 socket.on('connect', function(data) {
-    socket.emit('join', 'Hello World from client');
+    socket.emit('join', {apiKey: config.apiKey, apiSecret: config.apiSecret});
 });
 
 
-socket.on('broad', function(data) {
-    const fillRowTemplate = document.getElementById("template-fill-row").innerHTML;
-    var fillRow = '';
-
-    if (!_.isEmpty(data.Buys))
-        newTransaction(data.Buys, '#buysContainer');
-
-    if (!_.isEmpty(data.Sells))
-        newTransaction(data.Sells, '#sellsContainer');
-
-    if (!_.isEmpty(data.Fills)) {
-        _.forEach(data.Fills, function(fill, key) {
-            timestamp = new Date(fill.TimeStamp + 'Z').toLocaleString('en-US', { timeZone: "America/New_York" });
-            fillRow = fillRowTemplate.replace(/{{data1}}/g, fill.OrderType)
-                .replace(/{{data2}}/g, fill.Rate)
-                .replace(/{{data3}}/g, fill.Quantity)
-                .replace(/{{data4}}/g, timestamp);
-        });
-
-        if (fillRow)
-            $("#fillsContainer").prepend(fillRow);
-    }
-
-    highlightRates();
-    quantityClicked(selectedQuantity);
+socket.on('markets', function(markets) {
+    updateUsdPrices(markets);
+    _.forEach(markets, function(market) {
+        if (market.MarketName === config.marketName)
+            updateTicker(market);
+        else if(!blacklistTickers.includes(market.MarketName))
+            checkIfProfitable(market);
+    });
+    setTimeout(function(){socket.emit('marketStatus')}, 2000);
 });
 
-socket.on('ticker', function(data) {
-    if (data) {
-        const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
-            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, data.ticker + ': ' + data.price + ' ($' + (data.price * data.usdPrice) + ')')
-            .replace(/{{data2}}/g, data.price);
+function updateUsdPrices(markets) {
+    const usdt_btc = _.find(markets, { MarketName: 'USDT-BTC' }),
+        usdt_eth = _.find(markets, { MarketName: 'USDT-ETH' });
 
-        ticker = data;
-        localStorage.ticker = JSON.stringify(ticker);
-        $("#tickerContainer").prepend(tickerRow);
-    }
-    //updateRates(data.price);
-});
+    if (usdt_btc)
+        btc_usdPrice = usdt_btc.Last;
+
+    if (usdt_eth)
+        eth_usdPrice = usdt_eth.Last;
+}
 
 socket.on('tradeStatus', function(data) {
     updateTradeStatus(data);
 });
 
-socket.on('disconnect', () => {
-    console.log('client successfully disconnected')
+function checkIfProfitable(ticker) {
+    const usdPrice = getUsdPrice(ticker.MarketName),
+        profit = determineProfit(ticker, usdPrice);
 
-    // clear things
-    $('#buysContainer').children().remove();
-    $('#sellsContainer').children().remove();
-    $('#fillsContainer').children().remove();
-    $('#tickerContainer').children().remove();
-    socket.open();
-    initUpdates();
-});
+    if (ticker && profit.profitable) {
+        console.log('profitTicker: ', ticker);
+        const opportunityRowTemplate = document.getElementById("template-opportunity-row").innerHTML,
+            opportunityRow = opportunityRowTemplate.replace(/{{data1}}/g, ticker.MarketName)
+            .replace(/{{data2}}/g, 'Bid: ' + ticker.Bid)
+            .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask )
+            .replace(/{{data4}}/g, 'Last: ' + ticker.Last )
+            .replace(/{{data5}}/g, 'Gains: ' + profit.gains);
 
-socket.on('profitTicker', function(data) {
-    if (data) {
-        console.log('profitTicker: ', data);
-        const buttonTemplate = document.getElementById("template-profit-ticker-button").innerHTML,
-            tickerRow = buttonTemplate.replace(/{{data1}}/g, data.ticker.MarketName)
-            .replace(/{{data2}}/g, 'Bid: ' + data.ticker.Ask + ',Sell: ' + data.ticker.Bid + ',Last: ' + data.ticker.Last + ',Gains: ' + data.gains);
-
-        if ($('button#' + data.ticker.MarketName).length)
-            $('button#' + data.ticker.MarketName).replaceWith(tickerRow);
+        if ($("#" + ticker.MarketName + ".opportunity-row").length)
+            $("#" + ticker.MarketName + ".opportunity-row").replaceWith(opportunityRow);
         else
-            $("#profit-ticker-container").prepend(tickerRow);
+            $("#opportunity-container").prepend(opportunityRow);
 
-        $("#profit-count").text($("#profit-ticker-container").children(".btn").length);
+        $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
+        if(config.autoTrade === 'on' && _.isEmpty(tradeData))
+            initTrade(ticker.MarketName);
     }
-});
+}
+
+function determineProfit(ticker, usd_price) {
+    var ret = { profitable: false, gains: 0 };
+
+    usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
+    if (usd_volume >= profitTickerCriteria.volume) {
+        const tickerUsdPrice = ticker.Last * usd_price;
+        if (tickerUsdPrice <= profitTickerCriteria.tickerPriceCeiling) {
+            const bidUsdPrice = ticker.Bid * usd_price,
+                askUsdPrice = ticker.Ask * usd_price,
+                belowRate = ticker.Bid + (ticker.Bid * config.margin),
+                belowPrice = usd_price * belowRate,
+                aboveRate = ticker.Ask - (ticker.Ask * config.margin),
+                abovePrice = usd_price * aboveRate,
+                adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
+                adjustedBelowPrice = usd_price * adjustedBelowRate,
+                adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
+                adjustedAbovePrice = usd_price * adjustedAboveRate,
+                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
+
+            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
+            if (gainsPrice >= profitTickerCriteria.gains) {
+                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
+                ret.profitable = true;
+                ret.gains = gainsPrice;
+            }
+        }
+    }
+
+    return ret;
+}

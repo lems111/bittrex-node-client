@@ -26,44 +26,34 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group">
-                        <div class="input-group-btn">
-                            <button id="update-selection" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Select
-                            </button>
-                            <div class="dropdown-menu">
-                                <a class="update-dropdown-item dropdown-item" href="#">Margin</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Ticker</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Trade Units</a>
-                                <a class="update-dropdown-item dropdown-item" href="#">Frequency</a>
-                            </div>
-                        </div>
-                        <input id="update-input" type="text" class="form-control" aria-label="Text input with dropdown button">
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Margin</span>
+                        <input id="update-margin" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Market Name</span>
+                        <input id="update-market-name" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market name...ex: BTC-ETH">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Trade Units</span>
+                        <input id="update-trade-units" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter trade size...ex: 10 units">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Frequency</span>
+                        <input id="update-frequency" type="text" class="update-setting form-control" aria-label="Text input" placeholder="trade freq...ex: once or repeat">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Bittrex API Key</span>
+                        <input id="update-api-key" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api key">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
+                        <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button id="process-update" type="button" class="btn btn-primary">Update</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="profit-search-modal" tabindex="-1" role="dialog" aria-labelledby="header-title" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="header-title">Update value</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="profit-ticker-container" class="btn-group-vertical" role="group" aria-label="Basic example">
-                        <!-- Results Here -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -79,8 +69,6 @@
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <button id="show-profit-btn" class="btn btn-sm btn-outline-danger mr-sm-2" type="button" onclick="showProfitModal()">Found: <span id="profit-count" class="badge badge-light p-2">0</span></button>
-            <button id="seek-profit" class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="seekProfit()">Seek Profit</button>
             <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
             <button id="stats" class="btn btn-sm btn-outline-warning my-2 my-sm-0" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
         </form>
@@ -116,81 +104,51 @@
             </li>
         </ul>
         <form class="form-inline">
+            <button id="auto-trade" type="button" class="btn btn-sm btn-warning mr-sm-2" data-toggle="button" aria-pressed="true" autocomplete="off" onclick="updateAutoTrade()">
+                Auto Trade
+            </button>
             <button class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="trade()">Trade</button>
             <button class="btn btn-sm btn-outline-danger" type="button" onclick="cancelTrade()">Cancel Trade</button>
         </form>
     </nav>
     <div class="jumbotron">
+        <div id="active-trade-row" class="row">
+            <div class="col-12 col-md-auto col-lg-auto">
+                <span id="active-trade-msg" class="badge badge-warning p-2"></span>
+            </div>
+        </div>
+        <br>
         <div class="row">
-            <div id="altcoin1" class="col-12 col-md-auto col-lg-auto">
-                <div id="tickerContainer" class="container">
+            <div id="ticker" class="col-12 col-md-auto col-lg-auto">
+                <h4>Ticker Updates</h3>
+                <div id="ticker-container" class="container">
                     <!-- Results here -->
                 </div>
             </div>
-            <div id="buys" class="col-12 col-md-auto col-lg-auto">
-                <h4>Buys</h3>
-                <div id="buysContainer" class="container">
-                    <!-- Results here -->
-                </div>
-            </div>
-            <div id="sells" class="col-12 col-md-auto col-lg-auto">
-                <h4>Sells</h3>
-                <div id="sellsContainer" class="container">
-                    <!-- Results here -->
-                </div>
-            </div>
-            <div id="fills" class="col-12 col-md-auto col-lg-auto">
-                <div id="fillsContainer" class="container">
+            <div id="opportunities" class="col-12 col-md-auto col-lg-auto">
+                <h4>Profit Opportunities</h3>
+                <div id="opportunity-container" class="container">
                     <!-- Results here -->
                 </div>
             </div>
         </div>
     </div>  
-    
-    <script id="template-profit-ticker-button" type="text/template">
-        <button id="{{data1}}" class="btn" onclick="updateTicker('{{data1}}')"> {{data1}} <span class="badge badge-info">{{data2}}</span></button>
-    </script>
-
-    <script id="template-trans-row" type="text/template">
-        <div class="trans-row row alert-{{alertType}}" role="alert">
-            <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
-                <div class="rate" role="alert">
-                    {{data2}}
-                </div>
-            </div>
-            <div class="col-12 col-md-auto col-lg-auto" onclick="quantityClicked({{data3}})">
-                <div class="quantity" role="alert">
-                    {{data3}}
-                </div>
-            </div>
-        </div>
-    </script>
-    <script id="template-fill-row" type="text/template">
-        <div class="fill-row row">
-            <div class="col-12 col-md-auto col-lg-auto">
-                {{data1}}
-            </div>
-            <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
-                <div class="rate" role="alert">
-                    {{data2}}
-                </div>
-            </div>
-            <div class="col-12 col-md-auto col-lg-auto" onclick="quantityClicked({{data3}})">
-                <div class="quantity" role="alert">
-                    {{data3}}
-                </div>
-            </div>
-            <div class="col-12 col-md-auto col-lg-auto">
-                {{data4}}
+    <script id="template-opportunity-row" type="text/template">
+        <div id="{{data1}}" class="opportunity-row row mb-1">
+            <div class="col-12 col-md-auto col-lg-auto" onclick="initTrade('{{data1}}')">
+                {{data1}} <span class="badge badge-pill badge-warning p-2">{{data2}}</span>
+                <span class="badge badge-pill badge-warning p-2">{{data3}}</span>
+                <span class="badge badge-pill badge-warning p-2">{{data4}}</span>
+                <span class="badge badge-pill badge-warning p-2">{{data5}}</span>
             </div>
         </div>
     </script>
     <script id="template-ticker-row" type="text/template">
-        <div class="ticker-row row">
+        <div class="ticker-row row mb-1">
             <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
-                <div class="rate" role="alert">
-                    {{data1}}
-                </div>
+                {{data1}} <span class="badge badge-pill badge-info p-2">{{data3}}</span>
+                <span class="badge badge-pill badge-info p-2">{{data4}}</span>
+                <span class="badge badge-pill badge-info p-2">{{data5}}</span>
             </div>
         </div>
     </script>
@@ -198,50 +156,35 @@
 
 </html>
 <script>
-var config = {tickers: ['BTC-KMD'], ticker: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 10, frequency: 'repeat', satoshiLimit: .0005},    
-    rates, tradeData, ticker, selectedRate, selectedQuantity, tradesInterval, currentTrade,
-    profitTickerCriteria = {volume: 500000, gains: 0.01, tickerPriceCeiling: .20, config: config};
+var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 100, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off'},    
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, blacklistTickers = ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-SNGLS', 'BTC-CPC']
+    profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 2};
     
 restoreData();
 
 $( document ).ready(function() {
-    console.log( "ready!" );
-    initUpdates();
-});
-
-$( ".update-dropdown-item" ).on( "click", function() {
-    const type = $(this).text();
-    $("#update-selection").text(type);
-    switch(type){
-        case "Margin":
-            $("#update-input").attr("placeholder", "enter value in %...ex: .05").val(config.margin);
-            break;
-        case "Ticker":
-            $("#update-input").attr("placeholder", "enter ticker...ex: BTC-ETH").val(config.ticker);
-            break;
-        case "Trade Units":
-            $("#update-input").attr("placeholder", "enter trade size...ex: 10 units").val(config.tradeUnits);
-            break;
-        case "Frequency":
-            $("#update-input").attr("placeholder", "once or repeat").val(config.frequency);
-            break;
-    }
+    console.log('start app');
+    initUpdates(true);
+    $("#update-margin").val(config.margin);
+    $("#update-market-name").val(config.marketName);
+    $("#update-trade-units").val(config.tradeUnits);
+    $("#update-frequency").val(config.frequency);
+    $("#update-api-key").val(config.apiKey);
+    $("#update-api-secret").val(config.apiSecret);
 });
 
 $( "#process-update" ).on( "click", function() {
-    const type = $("#update-selection").text(), input = $("#update-input").val();
+    const margin = $("#update-margin").val(),
+        marketName = $("#update-market-name").val(),
+        tradeUnits = $("#update-trade-units").val(),
+        tradeFreq = $("#update-frequency").val();
+        apiKey = $("#update-api-key").val();
+        apiSecret = $("#update-api-secret").val();
 
-    switch(type){
-        case "Margin":
-            updateMargin(parseFloat(input));
-            break;
-        case "Ticker":
-            updateTicker(input.toUpperCase());
-            break;
-        case "Trade Units":
-            updateTradeUnits(parseFloat(input));
-            break;
-    }
+    updateMargin(parseFloat(margin));
+    switchMarkets(marketName.toUpperCase());
+    updateTradeUnits(parseFloat(tradeUnits));
+    updateApi(apiKey, apiSecret);
     $("#update-modal").modal('hide')
 });
 </script>
