@@ -46,15 +46,17 @@ function updateTicker(data) {
         };
 
         const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
-            tickerRow = tickerRowTemplate.replace(/{{data1}}/g, ticker.marketName)
-            .replace(/{{data2}}/g, ticker.price)
-            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd + ')')
-            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd + ')')
-            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd + ')');
+            tickerRow = tickerRowTemplate.replace(/{{data2}}/g, ticker.price)
+            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd.toFixed(2) + ')')
+            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd.toFixed(2) + ')')
+            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd.toFixed(2) + ')')
+            .replace(/{{data6}}/g, '$' + ticker.priceUsd)
+            .replace(/{{data7}}/g, '$' + ticker.bidUsd)
+            .replace(/{{data8}}/g, '$' + ticker.askUsd);
 
         localStorage.ticker = JSON.stringify(ticker);
         $("#ticker-container").prepend(tickerRow);
-
+        $("#ticker-title").text("Ticker Updates for " + ticker.marketName);
         return true; // success
     }
     return false;
@@ -80,6 +82,12 @@ function updateAutoTrade() {
 
 function updateTradeUnits(units) {
     config.tradeUnits = units;
+    localStorage.config = JSON.stringify(config);
+}
+
+function updateTradeBlacklist(marketNames) {
+    marketNames= marketNames.replace(/\s+/g, '');
+    config.blacklistTickers = marketNames.split(',');
     localStorage.config = JSON.stringify(config);
 }
 

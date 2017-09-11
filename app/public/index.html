@@ -50,6 +50,10 @@
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
                         <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Trade Blacklist</span>
+                        <input id="update-trade-blacklist" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market names to block from trading...BTC-KMD,BTC-GNT">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -120,7 +124,7 @@
         <br>
         <div class="row">
             <div id="ticker" class="col-12 col-md-auto col-lg-auto">
-                <h4>Ticker Updates</h3>
+                <h4 id="ticker-title">Ticker Updates</h3>
                 <div id="ticker-container" class="container">
                     <!-- Results here -->
                 </div>
@@ -139,16 +143,16 @@
                 {{data1}} <span class="badge badge-pill badge-warning p-2">{{data2}}</span>
                 <span class="badge badge-pill badge-warning p-2">{{data3}}</span>
                 <span class="badge badge-pill badge-warning p-2">{{data4}}</span>
-                <span class="badge badge-pill badge-warning p-2">{{data5}}</span>
+                <span class="badge badge-pill badge-warning p-2" title="{{data6}}">{{data5}}</span>
             </div>
         </div>
     </script>
     <script id="template-ticker-row" type="text/template">
         <div class="ticker-row row mb-1">
             <div class="col-12 col-md-auto col-lg-auto" onclick="rateClicked({{data2}})">
-                {{data1}} <span class="badge badge-pill badge-info p-2">{{data3}}</span>
-                <span class="badge badge-pill badge-info p-2">{{data4}}</span>
-                <span class="badge badge-pill badge-info p-2">{{data5}}</span>
+                <span class="badge badge-pill badge-info p-2" title="{{data6}}">{{data3}}</span>
+                <span class="badge badge-pill badge-info p-2" title="{{data7}}">{{data4}}</span>
+                <span class="badge badge-pill badge-info p-2" title="{{data8}}">{{data5}}</span>
             </div>
         </div>
     </script>
@@ -156,8 +160,10 @@
 
 </html>
 <script>
-var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:.05, commission:.0025, tradeUnits: 100, frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off'},    
-    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, blacklistTickers = ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-SNGLS', 'BTC-CPC']
+var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:0.001, commission:.0025, tradeUnits: 100,
+            frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off',
+            blacklistTickers: ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-CPC', 'BTC-SYS']},    
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice,
     profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 2};
     
 restoreData();
@@ -171,6 +177,7 @@ $( document ).ready(function() {
     $("#update-frequency").val(config.frequency);
     $("#update-api-key").val(config.apiKey);
     $("#update-api-secret").val(config.apiSecret);
+    $("#update-trade-blacklist").val(config.blacklistTickers.toString());
 });
 
 $( "#process-update" ).on( "click", function() {
@@ -180,11 +187,13 @@ $( "#process-update" ).on( "click", function() {
         tradeFreq = $("#update-frequency").val();
         apiKey = $("#update-api-key").val();
         apiSecret = $("#update-api-secret").val();
+        tradeBlacklist = $("#update-trade-blacklist").val();
 
     updateMargin(parseFloat(margin));
     switchMarkets(marketName.toUpperCase());
     updateTradeUnits(parseFloat(tradeUnits));
     updateApi(apiKey, apiSecret);
+    updateTradeBlacklist(tradeBlacklist);
     $("#update-modal").modal('hide')
 });
 </script>
