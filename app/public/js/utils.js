@@ -47,9 +47,9 @@ function updateTicker(data) {
 
         const tickerRowTemplate = document.getElementById("template-ticker-row").innerHTML,
             tickerRow = tickerRowTemplate.replace(/{{data2}}/g, ticker.price)
-            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd.toFixed(2) + ')')
-            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd.toFixed(2) + ')')
-            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd.toFixed(2) + ')')
+            .replace(/{{data3}}/g, 'Last:' + ticker.price + ' ($' + ticker.priceUsd.toFixed(4) + ')')
+            .replace(/{{data4}}/g, 'Bid:' + ticker.bid + ' ($' + ticker.bidUsd.toFixed(4) + ')')
+            .replace(/{{data5}}/g, 'Ask:' + ticker.ask + ' ($' + ticker.askUsd.toFixed(4) + ')')
             .replace(/{{data6}}/g, '$' + ticker.priceUsd)
             .replace(/{{data7}}/g, '$' + ticker.bidUsd)
             .replace(/{{data8}}/g, '$' + ticker.askUsd);

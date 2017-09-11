@@ -42,7 +42,7 @@ function checkIfProfitable(ticker) {
             .replace(/{{data2}}/g, 'Bid: ' + ticker.Bid)
             .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask )
             .replace(/{{data4}}/g, 'Last: ' + ticker.Last )
-            .replace(/{{data5}}/g, 'Gains: ' + profit.gains.toFixed(2))
+            .replace(/{{data5}}/g, 'Gains: ' + profit.gains.toFixed(4))
             .replace(/{{data6}}/g, '$' + profit.gains);
 
         if ($("#" + ticker.MarketName + ".opportunity-row").length)
