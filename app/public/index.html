@@ -26,6 +26,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <label for="update-margin">Opportunity Search</label>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Margin</span>
                         <input id="update-margin" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
@@ -54,10 +55,39 @@
                         <span class="input-group-addon" id="basic-addon1">Trade Blacklist</span>
                         <input id="update-trade-blacklist" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market names to block from trading...BTC-KMD,BTC-GNT">
                     </div>
+                    <label for="update-ticker-ceiling">Profit Criteria</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Ticker Trade Ceiling</span>
+                        <input id="update-ticker-ceiling" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter ticker ceiling price in satoshi...ex: .0006">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Minimum gain allowed</span>
+                        <input id="update-min-gain" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter minimum gain allowed in USD cents...ex: .02">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button id="process-update" type="button" class="btn btn-primary">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="account-modal" tabindex="-1" role="dialog" aria-labelledby="header-title" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">Account Info</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="btc-trade-gains" class="alert alert-primary alert-dismissible fade show" role="alert">
+                    </div>
+                    <div id="eth-trade-gains" class="alert alert-primary alert-dismissible fade show" role="alert">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -74,7 +104,7 @@
         </ul>
         <form class="form-inline my-2 my-lg-0">
             <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
-            <button id="stats" class="btn btn-sm btn-outline-warning my-2 my-sm-0" data-toggle="popover" type="button" onclick="showStats()">Stats</button>
+            <button class="btn btn-sm btn-outline-info my-2 my-sm-0" type="button" onclick="getAccountInfo()">Account</button>
         </form>
     </nav>
     <nav class="navbar navbar-expand-md navbar-dark fixed-top fixed-top-2 bg-dark">
@@ -178,22 +208,28 @@ $( document ).ready(function() {
     $("#update-api-key").val(config.apiKey);
     $("#update-api-secret").val(config.apiSecret);
     $("#update-trade-blacklist").val(config.blacklistTickers.toString());
+    $("#update-ticker-ceiling").val(profitTickerCriteria.tickerPriceCeiling);
+    $("#update-min-gain").val(profitTickerCriteria.gains);
 });
 
 $( "#process-update" ).on( "click", function() {
     const margin = $("#update-margin").val(),
         marketName = $("#update-market-name").val(),
         tradeUnits = $("#update-trade-units").val(),
-        tradeFreq = $("#update-frequency").val();
-        apiKey = $("#update-api-key").val();
-        apiSecret = $("#update-api-secret").val();
-        tradeBlacklist = $("#update-trade-blacklist").val();
+        tradeFreq = $("#update-frequency").val(),
+        apiKey = $("#update-api-key").val(),
+        apiSecret = $("#update-api-secret").val(),
+        tradeBlacklist = $("#update-trade-blacklist").val(),
+        tickerPriceCeiling = $("#update-ticker-ceiling").val(),
+        minGain = $("#update-min-gain").val();;
 
     updateMargin(parseFloat(margin));
     switchMarkets(marketName.toUpperCase());
     updateTradeUnits(parseFloat(tradeUnits));
     updateApi(apiKey, apiSecret);
     updateTradeBlacklist(tradeBlacklist);
+    updateTickerPriceCeiling(parseFloat(tickerPriceCeiling));
+    updateProfitMinGain(parseFloat(minGain));
     $("#update-modal").modal('hide')
 });
 </script>

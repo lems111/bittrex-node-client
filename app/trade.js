@@ -4,6 +4,13 @@ const bittrex = require('node.bittrex.api'),
 bittrex.options(config.bittrex);
 
 module.exports = {
+    getOrderhistory: function() {
+        return new Promise(function(resolve, reject) {
+            bittrex.getorderhistory(null,function(orders) {
+                resolve(orders);
+            });
+        })
+    },    
     getMarketSummaries: function() {
         return new Promise(function(resolve, reject) {
             bittrex.getmarketsummaries(function(orders) {

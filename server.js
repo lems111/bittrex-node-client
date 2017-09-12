@@ -27,6 +27,18 @@ app.get('*', function(req, res) {
 io.on('connection', function(client) {
     logMessage('Client connected...');
 
+    client.on('accountInfo', function() {
+        var accountData = null;
+        trade.getOrderhistory().then(function(orders) {
+            if (orders && orders.success && !_.isEmpty(orders.result))
+                accountData = orders.result;
+            client.emit('accountData', accountData);
+        }).catch(function(err) {
+            logMessage('accountInfo err: ' + JSON.stringify(err, null, 4));
+            client.emit('accountData', null);
+        });
+    });
+
     client.on('join', function(data) {
         logMessage('joined client, data: ' + JSON.stringify(data, null, 4));
         if (data && data.apiKey && data.apiSecret) {
@@ -38,7 +50,7 @@ io.on('connection', function(client) {
 
     client.on('marketStatus', function() {
         trade.getMarketSummaries().then(function(markets) {
-            if (markets && markets.success && !_.isEmpty(markets.result)) 
+            if (markets && markets.success && !_.isEmpty(markets.result))
                 client.emit('markets', markets.result);
         }).catch(function(err) {
             logMessage('marketStatus err: ' + JSON.stringify(err, null, 4));

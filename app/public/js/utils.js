@@ -11,6 +11,9 @@ function restoreData() {
 
     if (localStorage.ticker)
         ticker = JSON.parse(localStorage.ticker);
+
+    if (localStorage.profitTickerCriteria)
+        profitTickerCriteria = JSON.parse(localStorage.profitTickerCriteria);
 }
 
 function copy(el) {
@@ -86,7 +89,7 @@ function updateTradeUnits(units) {
 }
 
 function updateTradeBlacklist(marketNames) {
-    marketNames= marketNames.replace(/\s+/g, '');
+    marketNames = marketNames.replace(/\s+/g, '');
     config.blacklistTickers = marketNames.split(',');
     localStorage.config = JSON.stringify(config);
 }
@@ -115,7 +118,7 @@ function initUpdates(initMarketStatus) {
     $('#ticker-container').children().remove();
     $('#opportunity-container').children().remove();
 
-    if (config.autoTrade === 'on') 
+    if (config.autoTrade === 'on')
         $('#auto-trade').addClass("active").attr("aria-pressed", true).text('Auto Trade (on)');
     else
         $('#auto-trade').removeClass("active").text('Auto Trade (off)');
@@ -168,14 +171,14 @@ function calculateFromRate(rate) {
         usdPrice: usdPrice,
         abovePrice: abovePrice,
         belowPrice: belowPrice,
-        belowRate: parseFloat(belowRate).toFixed(8),
-        aboveRate: parseFloat(aboveRate).toFixed(8),
-        adjustedBelowRate: parseFloat(adjustedBelowRate).toFixed(8),
-        adjustedAboveRate: parseFloat(adjustedAboveRate).toFixed(8),
+        belowRate: parseFloat(belowRate.toFixed(8)),
+        aboveRate: parseFloat(aboveRate.toFixed(8)),
+        adjustedBelowRate: parseFloat(adjustedBelowRate.toFixed(8)),
+        adjustedAboveRate: parseFloat(adjustedAboveRate.toFixed(8)),
         adjustedBelowPrice: adjustedBelowPrice,
         adjustedAbovePrice: adjustedAbovePrice,
         gainsPrice: gainsPrice,
-        gainsRate: parseFloat(gainsRate).toFixed(8),
+        gainsRate: parseFloat(gainsRate.toFixed(8)),
         tradeUnits: tradeUnits
     };
 
@@ -186,16 +189,8 @@ function calculateFromRate(rate) {
 
 }
 
-function showStats() {
-    var msg = '',
-        tradeUnits = rates.tradeUnits || config.tradeUnits;
-
-    msg += ('Trade Units: ' + tradeUnits + '<br/>');
-    msg += ('Margin: ' + config.margin + '%<br/>');
-
-    $('#stats').popover('dispose')
-        .popover({ trigger: 'focus', content: msg, placement: 'left', html: true })
-        .popover('show');
+function getAccountInfo() {
+    socket.emit('accountInfo');
 }
 
 function checkRate() {
@@ -209,7 +204,20 @@ function updateMargin(newMargin) {
         config.margin = newMargin;
         localStorage.config = JSON.stringify(config);
     }
+}
 
+function updateTickerPriceCeiling(tickerPriceCeiling) {
+    if (tickerPriceCeiling) {
+        profitTickerCriteria.tickerPriceCeiling = tickerPriceCeiling;
+        localStorage.profitTickerCriteria = JSON.stringify(profitTickerCriteria);
+    }
+}
+
+function updateProfitMinGain(minGain) {
+    if (minGain) {
+        profitTickerCriteria.gains = minGain;
+        localStorage.profitTickerCriteria = JSON.stringify(profitTickerCriteria);
+    }
 }
 
 function getUsdPrice(marketName) {
@@ -219,4 +227,52 @@ function getUsdPrice(marketName) {
         return eth_usdPrice;
     else
         return null;
+}
+
+function calculateTradeGains(trades) {
+    var tradeGains = [],
+        buyTrade = null,
+        sellTrade = null,
+        totalGains = 0,
+        amount = 0,
+        quantity = 0;
+    trades = _.sortBy(trades, function(trade) { return new Date(trade.Closed); });
+    _.forEach(trades, function(trade) {
+        buyTrade = _.find(tradeGains, { 'Exchange': trade.Exchange, OrderType: 'LIMIT_BUY' });
+        sellTrade = _.find(tradeGains, { 'Exchange': trade.Exchange, OrderType: 'LIMIT_SELL' });
+        quantity = (trade.Quantity == trade.QuantityRemaining) ? (trade.Quantity) : (trade.Quantity - trade.QuantityRemaining);
+        quantity = parseFloat(quantity.toFixed(8));
+        if (trade.OrderType === 'LIMIT_BUY') {
+            if (buyTrade) {
+                buyTrade.Quantity = buyTrade.Quantity + quantity;
+                buyTrade.Amount += (trade.Price + trade.Commission);
+            } else {
+                amount = trade.Price + trade.Commission;
+                buyTrade = { Exchange: trade.Exchange, OrderType: trade.OrderType, Quantity: quantity, Amount: amount };
+                tradeGains.push(buyTrade);
+            }
+        }
+
+        if (trade.OrderType === 'LIMIT_SELL') {
+            if (sellTrade) {
+                sellTrade.Quantity = sellTrade.Quantity + quantity;
+                sellTrade.Amount += (trade.Price - trade.Commission);
+            } else {
+                amount = trade.Price - trade.Commission;
+                sellTrade = { Exchange: trade.Exchange, OrderType: trade.OrderType, Quantity: quantity, Amount: amount };
+                tradeGains.push(sellTrade);
+            }
+        }
+
+        if (buyTrade && sellTrade) {
+            if (buyTrade.Quantity === sellTrade.Quantity) {
+                totalGains += (sellTrade.Amount - buyTrade.Amount);
+                _.remove(tradeGains, { Exchange: trade.Exchange });
+            }
+            /*else
+                               console.log('confusion:', buyTrade, sellTrade);*/
+        }
+    })
+    console.log('tradeGains: ', tradeGains);
+    return totalGains.toFixed(8);
 }

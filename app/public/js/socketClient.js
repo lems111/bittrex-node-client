@@ -1,7 +1,7 @@
 var socket = io.connect('http://localhost:3000');
 
 socket.on('connect', function(data) {
-    socket.emit('join', {apiKey: config.apiKey, apiSecret: config.apiSecret});
+    socket.emit('join', { apiKey: config.apiKey, apiSecret: config.apiSecret });
 });
 
 
@@ -10,10 +10,26 @@ socket.on('markets', function(markets) {
     _.forEach(markets, function(market) {
         if (market.MarketName === config.marketName)
             updateTicker(market);
-        else if(!config.blacklistTickers.includes(market.MarketName))
+        else if (!config.blacklistTickers.includes(market.MarketName))
             checkIfProfitable(market);
     });
-    setTimeout(function(){socket.emit('marketStatus')}, 2000);
+    setTimeout(function() { socket.emit('marketStatus') }, 2000);
+});
+
+socket.on('accountData', function(accountData) {
+    if (!_.isEmpty(accountData)) {
+        const btcTrades = _.filter(accountData, function(trade) { return trade.Exchange.startsWith('BTC'); }),
+            ethTrades = _.filter(accountData, function(trade) { return trade.Exchange.startsWith('ETH'); }),
+            btcTradeGains = calculateTradeGains(btcTrades),
+            ethTradeGains = calculateTradeGains(ethTrades),
+            btcTradeGainsUsd = (btc_usdPrice) ? (btcTradeGains * btc_usdPrice) : (0),
+            ethTradeGainsUsd = (eth_usdPrice) ? (ethTradeGains * eth_usdPrice) : (0);
+
+        $("#btc-trade-gains").text('Total BTC trade gains: ' + btcTradeGains + '($' + btcTradeGainsUsd.toFixed(4) + ')');
+        $("#eth-trade-gains").text('Total ETH trade gains: ' + ethTradeGains + '($' + ethTradeGainsUsd.toFixed(4) + ')');
+    }
+
+    $("#account-modal").modal('show');
 });
 
 function updateUsdPrices(markets) {
@@ -40,8 +56,8 @@ function checkIfProfitable(ticker) {
         const opportunityRowTemplate = document.getElementById("template-opportunity-row").innerHTML,
             opportunityRow = opportunityRowTemplate.replace(/{{data1}}/g, ticker.MarketName)
             .replace(/{{data2}}/g, 'Bid: ' + ticker.Bid)
-            .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask )
-            .replace(/{{data4}}/g, 'Last: ' + ticker.Last )
+            .replace(/{{data3}}/g, 'Sell: ' + ticker.Ask)
+            .replace(/{{data4}}/g, 'Last: ' + ticker.Last)
             .replace(/{{data5}}/g, 'Gains: ' + profit.gains.toFixed(4))
             .replace(/{{data6}}/g, '$' + profit.gains);
 
@@ -51,7 +67,7 @@ function checkIfProfitable(ticker) {
             $("#opportunity-container").prepend(opportunityRow);
 
         $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
-        if(config.autoTrade === 'on' && _.isEmpty(tradeData))
+        if (config.autoTrade === 'on' && _.isEmpty(tradeData))
             initTrade(ticker.MarketName);
     }
 }
@@ -59,7 +75,7 @@ function checkIfProfitable(ticker) {
 function determineProfit(ticker, usd_price) {
     var ret = { profitable: false, gains: 0 };
 
-    usd_volume = (ticker.MarketName.startsWith('BTC')) ? (usd_price * ticker.BaseVolume) : (usd_price * ticker.BaseVolume);
+    usd_volume = usd_price * ticker.BaseVolume;
     if (usd_volume >= profitTickerCriteria.volume) {
         const tickerUsdPrice = ticker.Last * usd_price;
         if (tickerUsdPrice <= profitTickerCriteria.tickerPriceCeiling) {
