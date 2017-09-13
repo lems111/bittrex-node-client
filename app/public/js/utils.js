@@ -123,6 +123,9 @@ function initUpdates(initMarketStatus) {
     else
         $('#auto-trade').removeClass("active").text('Auto Trade (off)');
 
+    if(!_.isEmpty(tradeData))
+        updateActiveTradeMsg(tradeData);
+
     // start things
     if (initMarketStatus)
         socket.emit('marketStatus');
@@ -229,50 +232,13 @@ function getUsdPrice(marketName) {
         return null;
 }
 
-function calculateTradeGains(trades) {
-    var tradeGains = [],
-        buyTrade = null,
-        sellTrade = null,
-        totalGains = 0,
-        amount = 0,
-        quantity = 0;
-    trades = _.sortBy(trades, function(trade) { return new Date(trade.Closed); });
-    _.forEach(trades, function(trade) {
-        buyTrade = _.find(tradeGains, { 'Exchange': trade.Exchange, OrderType: 'LIMIT_BUY' });
-        sellTrade = _.find(tradeGains, { 'Exchange': trade.Exchange, OrderType: 'LIMIT_SELL' });
-        quantity = (trade.Quantity == trade.QuantityRemaining) ? (trade.Quantity) : (trade.Quantity - trade.QuantityRemaining);
-        quantity = parseFloat(quantity.toFixed(8));
-        if (trade.OrderType === 'LIMIT_BUY') {
-            if (buyTrade) {
-                buyTrade.Quantity = buyTrade.Quantity + quantity;
-                buyTrade.Amount += (trade.Price + trade.Commission);
-            } else {
-                amount = trade.Price + trade.Commission;
-                buyTrade = { Exchange: trade.Exchange, OrderType: trade.OrderType, Quantity: quantity, Amount: amount };
-                tradeGains.push(buyTrade);
-            }
-        }
-
-        if (trade.OrderType === 'LIMIT_SELL') {
-            if (sellTrade) {
-                sellTrade.Quantity = sellTrade.Quantity + quantity;
-                sellTrade.Amount += (trade.Price - trade.Commission);
-            } else {
-                amount = trade.Price - trade.Commission;
-                sellTrade = { Exchange: trade.Exchange, OrderType: trade.OrderType, Quantity: quantity, Amount: amount };
-                tradeGains.push(sellTrade);
-            }
-        }
-
-        if (buyTrade && sellTrade) {
-            if (buyTrade.Quantity === sellTrade.Quantity) {
-                totalGains += (sellTrade.Amount - buyTrade.Amount);
-                _.remove(tradeGains, { Exchange: trade.Exchange });
-            }
-            /*else
-                               console.log('confusion:', buyTrade, sellTrade);*/
-        }
-    })
-    console.log('tradeGains: ', tradeGains);
-    return totalGains.toFixed(8);
+function updateActiveTradeMsg(updatedTradeData) {
+    if (!_.isEmpty(updatedTradeData)) {
+        const msg = updatedTradeData.marketName + ' - Buy Rate: ' + updatedTradeData.buyRate + ' Sell Rate: ' + updatedTradeData.sellRate + ' Trade Units: ' + updatedTradeData.tradeUnits + ' Gains: ' + updatedTradeData.gainsPrice;
+        $("#active-trade-msg").text(msg);
+        $("#active-trade-row").show();
+    } else {
+        $("#active-trade-msg").text('');
+        $("#active-trade-row").hide();
+    }
 }

@@ -29,40 +29,40 @@
                     <label for="update-margin">Opportunity Search</label>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Margin</span>
-                        <input id="update-margin" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
+                        <input id="update-margin" type="text" class="form-control" aria-label="Text input" placeholder="enter value in %...ex: .05">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Market Name</span>
-                        <input id="update-market-name" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market name...ex: BTC-ETH">
+                        <input id="update-market-name" type="text" class="form-control" aria-label="Text input" placeholder="enter market name...ex: BTC-ETH">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Trade Units</span>
-                        <input id="update-trade-units" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter trade size...ex: 10 units">
+                        <input id="update-trade-units" type="text" class="form-control" aria-label="Text input" placeholder="enter trade size...ex: 10 units">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Frequency</span>
-                        <input id="update-frequency" type="text" class="update-setting form-control" aria-label="Text input" placeholder="trade freq...ex: once or repeat">
+                        <input id="update-frequency" type="text" class="form-control" aria-label="Text input" placeholder="trade freq...ex: once or repeat">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Key</span>
-                        <input id="update-api-key" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api key">
+                        <input id="update-api-key" type="text" class="form-control" aria-label="Text input" placeholder="enter bittrex api key">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Bittrex API Secret</span>
-                        <input id="update-api-secret" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter bittrex api secret">
+                        <input id="update-api-secret" type="text" class="form-control" aria-label="Text input" placeholder="enter bittrex api secret">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Trade Blacklist</span>
-                        <input id="update-trade-blacklist" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter market names to block from trading...BTC-KMD,BTC-GNT">
+                        <textarea id="update-trade-blacklist" class="form-control" placeholder="enter market names to block from trading...BTC-KMD,BTC-GNT" rows="1"></textarea>
                     </div>
                     <label for="update-ticker-ceiling">Profit Criteria</label>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Ticker Trade Ceiling</span>
-                        <input id="update-ticker-ceiling" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter ticker ceiling price in satoshi...ex: .0006">
+                        <input id="update-ticker-ceiling" type="text" class="form-control" aria-label="Text input" placeholder="enter ticker ceiling price in satoshi...ex: .0006">
                     </div>
                     <div class="input-group mb-2">
                         <span class="input-group-addon" id="basic-addon1">Minimum gain allowed</span>
-                        <input id="update-min-gain" type="text" class="update-setting form-control" aria-label="Text input" placeholder="enter minimum gain allowed in USD cents...ex: .02">
+                        <input id="update-min-gain" type="text" class="form-control" aria-label="Text input" placeholder="enter minimum gain allowed in USD cents...ex: .02">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -103,7 +103,7 @@
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <button class="btn btn-sm btn-outline-success mr-sm-2" type="button" data-toggle="modal" data-target="#update-modal">Update Settings</button>
+            <button id="settings-btn" class="btn btn-sm btn-outline-success mr-sm-2" type="button">Update Settings</button>
             <button class="btn btn-sm btn-outline-info my-2 my-sm-0" type="button" onclick="getAccountInfo()">Account</button>
         </form>
     </nav>
@@ -207,7 +207,7 @@ $( document ).ready(function() {
     $("#update-frequency").val(config.frequency);
     $("#update-api-key").val(config.apiKey);
     $("#update-api-secret").val(config.apiSecret);
-    $("#update-trade-blacklist").val(config.blacklistTickers.toString());
+    $("#update-trade-blacklist").text(config.blacklistTickers.toString());
     $("#update-ticker-ceiling").val(profitTickerCriteria.tickerPriceCeiling);
     $("#update-min-gain").val(profitTickerCriteria.gains);
 });
@@ -219,7 +219,7 @@ $( "#process-update" ).on( "click", function() {
         tradeFreq = $("#update-frequency").val(),
         apiKey = $("#update-api-key").val(),
         apiSecret = $("#update-api-secret").val(),
-        tradeBlacklist = $("#update-trade-blacklist").val(),
+        tradeBlacklist = $("#update-trade-blacklist").text(),
         tickerPriceCeiling = $("#update-ticker-ceiling").val(),
         minGain = $("#update-min-gain").val();;
 
@@ -230,6 +230,11 @@ $( "#process-update" ).on( "click", function() {
     updateTradeBlacklist(tradeBlacklist);
     updateTickerPriceCeiling(parseFloat(tickerPriceCeiling));
     updateProfitMinGain(parseFloat(minGain));
-    $("#update-modal").modal('hide')
+    $("#update-modal").modal('hide');
+});
+
+$( "#settings-btn" ).on( "click", function() {
+    $("#update-market-name").val(config.marketName);
+    $("#update-modal").modal('show')
 });
 </script>

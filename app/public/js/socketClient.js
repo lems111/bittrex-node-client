@@ -1,7 +1,8 @@
 var socket = io.connect('http://localhost:3000');
 
 socket.on('connect', function(data) {
-    socket.emit('join', { apiKey: config.apiKey, apiSecret: config.apiSecret });
+    if(config)
+        socket.emit('join', { apiKey: config.apiKey, apiSecret: config.apiSecret });
 });
 
 
@@ -93,7 +94,6 @@ function determineProfit(ticker, usd_price) {
 
             //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
             if (gainsPrice >= profitTickerCriteria.gains) {
-                console.log(ticker.MarketName + ',usd_volume:' + usd_volume + ', ask: ' + ticker.Ask + ', bid: ' + ticker.Bid + ', gainsPrice: ' + gainsPrice);
                 ret.profitable = true;
                 ret.gains = gainsPrice;
             }
