@@ -1,4 +1,4 @@
-const bittrex = require('node.bittrex.api'),
+const bittrex = require('node-bittrex-api'),
     config = require('../config')(process.env.CONFIG);
 
 bittrex.options(config.bittrex);

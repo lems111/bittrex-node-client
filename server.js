@@ -8,7 +8,7 @@ var express = require('express'),
     io = require('socket.io')(server),
     port = process.env.PORT || 3000,
     _ = require('lodash'),
-    bittrex = require('node.bittrex.api'),
+    bittrex = require('node-bittrex-api'),
     trade = require('./app/trade.js');
 const { Console } = require('console'),
     fs = require("fs"),
@@ -49,12 +49,18 @@ io.on('connection', function(client) {
     });
 
     client.on('marketStatus', function() {
-        trade.getMarketSummaries().then(function(markets) {
-            if (markets && markets.success && !_.isEmpty(markets.result))
-                client.emit('markets', markets.result);
-        }).catch(function(err) {
-            logMessage('marketStatus err: ' + JSON.stringify(err, null, 4));
-            client.emit('markets', null);
+        bittrex.websockets.client(function() {
+            console.log('Websocket connected');
+            bittrex.websockets.listen(function(data) {
+                if (data.M === 'updateSummaryState') {
+                    data.A.forEach(function(data_for) {
+                        if (data_for && !_.isEmpty(data_for.Deltas))
+                            client.emit('markets', data_for.Deltas);
+                        else
+                            client.emit('markets', null);
+                    });
+                }
+            });
         });
     })
 

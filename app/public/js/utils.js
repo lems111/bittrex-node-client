@@ -33,6 +33,10 @@ function copy(el) {
 
 }
 
+function lookForTrends(){
+
+}
+
 function updateTicker(data) {
     const usdPrice = getUsdPrice(data.MarketName);
 

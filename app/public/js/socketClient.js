@@ -1,20 +1,21 @@
 var socket = io.connect('http://localhost:3000');
 
 socket.on('connect', function(data) {
-    if(config)
+    if (config)
         socket.emit('join', { apiKey: config.apiKey, apiSecret: config.apiSecret });
 });
 
 
 socket.on('markets', function(markets) {
-    updateUsdPrices(markets);
-    _.forEach(markets, function(market) {
-        if (market.MarketName === config.marketName)
-            updateTicker(market);
-        else if (!config.blacklistTickers.includes(market.MarketName))
-            checkIfProfitable(market);
-    });
-    setTimeout(function() { socket.emit('marketStatus') }, 2000);
+    if (!_.isEmpty(markets)) {
+        updateUsdPrices(markets);
+        _.forEach(markets, function(market) {
+            if (market.MarketName === config.marketName)
+                updateTicker(market);
+            else if (!config.blacklistTickers.includes(market.MarketName))
+                checkIfProfitable(market);
+        });
+    }
 });
 
 socket.on('accountData', function(accountData) {
