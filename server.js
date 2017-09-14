@@ -55,9 +55,9 @@ io.on('connection', function(client) {
                 if (data.M === 'updateSummaryState') {
                     data.A.forEach(function(data_for) {
                         if (data_for && !_.isEmpty(data_for.Deltas))
-                            client.emit('markets', data_for.Deltas);
+                            client.emit('marketsStatus', data_for.Deltas);
                         else
-                            client.emit('markets', null);
+                            client.emit('marketsStatus', null);
                     });
                 }
             });
@@ -90,6 +90,29 @@ io.on('connection', function(client) {
             });
         }
     });
+
+    client.on('marketList', function() {
+        bittrex.getmarkets(function(markets) {
+            if (markets && markets.success && !_.isEmpty(markets.result)) {
+                var marketList = _.filter(markets.result, { 'IsActive': true });
+                marketList = _.map(marketList, function(m) {
+                    return _.pick(m, 'MarketName');
+                });
+                client.emit('marketList', marketList);
+            } else
+                client.emit('marketList', null);
+        });
+    });
+
+    client.on('orderHistory', function(marketName) {
+        bittrex.getmarkethistory({ market: marketName }, function(history) {
+            if (history && history.success && !_.isEmpty(history.result))
+                client.emit('orderHistory', history);
+            else
+                client.emit('orderHistory', null);
+        });
+    });
+
 
     client.on('trade', function(data) {
         var tradeStatus = {};
@@ -138,7 +161,7 @@ io.on('connection', function(client) {
                                         return null;
                                     }
                                 } else {
-                                    tradeStatus = { status: 'error', msg: 'not enough funds in ' + currency };
+                                    tradeStatus = { status: 'info', msg: 'not enough funds in ' + currency };
                                     return null;
                                 }
                             } else {

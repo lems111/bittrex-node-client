@@ -5,8 +5,21 @@ socket.on('connect', function(data) {
         socket.emit('join', { apiKey: config.apiKey, apiSecret: config.apiSecret });
 });
 
+socket.on('marketList', function(marketList) {
+    if (marketList) {
+        console.log(marketList);
+        trendingMarkets = marketList
+        socket.emit('orderHistory', marketList[0].MarketName);
+    }
+});
 
-socket.on('markets', function(markets) {
+socket.on('orderHistory', function(history) {
+    if (!_.isEmpty(history)) {
+        console.log(history);
+    }
+});
+
+socket.on('marketsStatus', function(markets) {
     if (!_.isEmpty(markets)) {
         updateUsdPrices(markets);
         _.forEach(markets, function(market) {

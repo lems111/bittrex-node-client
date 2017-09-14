@@ -194,7 +194,7 @@
 var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:0.001, commission:.0025, tradeUnits: 100,
             frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off',
             blacklistTickers: ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-CPC', 'BTC-SYS']},    
-    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice,
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, trendingMarkets;
     profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 2};
     
 restoreData();

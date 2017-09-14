@@ -6,11 +6,25 @@ bittrex.options(config.bittrex);
 module.exports = {
     getOrderhistory: function() {
         return new Promise(function(resolve, reject) {
-            bittrex.getorderhistory(null,function(orders) {
+            bittrex.getorderhistory(null, function(orders) {
                 resolve(orders);
             });
         })
-    },    
+    },
+    getMarkets: function() {
+        return new Promise(function(resolve, reject) {
+            bittrex.getmarkets(function(markets) {
+                resolve(markets);
+            });
+        })
+    },
+    getMarketHistory: function() {
+        return new Promise(function(resolve, reject) {
+            bittrex.getmarkethistory({ market: marketName }, function(history) {
+                resolve(history);
+            });
+        })
+    },
     getMarketSummaries: function() {
         return new Promise(function(resolve, reject) {
             bittrex.getmarketsummaries(function(orders) {
@@ -20,7 +34,7 @@ module.exports = {
     },
     getOpenedOrders: function(marketName) {
         return new Promise(function(resolve, reject) {
-            bittrex.getopenorders({market: marketName}, function(orders) {
+            bittrex.getopenorders({ market: marketName }, function(orders) {
                 resolve(orders);
             });
         })

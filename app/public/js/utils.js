@@ -34,7 +34,7 @@ function copy(el) {
 }
 
 function lookForTrends(){
-
+    socket.emit('marketList');
 }
 
 function updateTicker(data) {
