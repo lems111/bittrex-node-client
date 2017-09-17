@@ -67,7 +67,7 @@ function isTrending(orders) {
             else
                 percentIncrease = ((o.Price * 100) / firstHit) - 100;
             if (percentIncrease >= 5) {
-                console.log('percentIncrease: ' + percentIncrease + ',firstHit: ' + firstHit + ',secondHit: ' + secondHit + ',Price: ' + o.Price);
+                //console.log('percentIncrease: ' + percentIncrease + ',firstHit: ' + firstHit + ',secondHit: ' + secondHit + ',Price: ' + o.Price);
                 if (!firstHit)
                     firstHit = o.Price;
                 else if (!secondHit)
@@ -83,7 +83,7 @@ function isTrending(orders) {
                 secondHit = 0;
         }
     });
-    console.log('firstHit: ' + firstHit + ',secondHit: ' + secondHit);
+    //console.log('firstHit: ' + firstHit + ',secondHit: ' + secondHit);
     return (firstHit && secondHit);
 }
 
