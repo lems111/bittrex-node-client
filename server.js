@@ -94,7 +94,9 @@ io.on('connection', function(client) {
     client.on('marketList', function() {
         bittrex.getmarkets(function(markets) {
             if (markets && markets.success && !_.isEmpty(markets.result)) {
-                var marketList = _.filter(markets.result, { 'IsActive': true });
+                var marketList = _.filter(markets.result, function(m) {
+                    return ((m.MarketName.startsWith('BTC') || m.MarketName.startsWith('ETH')) && m.IsActive);
+                });
                 marketList = _.map(marketList, function(m) {
                     return _.pick(m, 'MarketName');
                 });
@@ -106,9 +108,10 @@ io.on('connection', function(client) {
 
     client.on('orderHistory', function(marketName) {
         bittrex.getmarkethistory({ market: marketName }, function(history) {
-            if (history && history.success && !_.isEmpty(history.result))
-                client.emit('orderHistory', history);
-            else
+            if (history && history.success && !_.isEmpty(history.result)) {
+                var orders = _.filter(history.result, { OrderType: 'BUY' });
+                client.emit('orderHistory', { marketName: marketName, orders: orders });
+            } else
                 client.emit('orderHistory', null);
         });
     });

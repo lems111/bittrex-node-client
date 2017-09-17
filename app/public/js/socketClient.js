@@ -7,15 +7,25 @@ socket.on('connect', function(data) {
 
 socket.on('marketList', function(marketList) {
     if (marketList) {
-        console.log(marketList);
         trendingMarkets = marketList
-        socket.emit('orderHistory', marketList[0].MarketName);
+        socket.emit('orderHistory', trendingMarkets[0].MarketName);
     }
 });
 
 socket.on('orderHistory', function(history) {
     if (!_.isEmpty(history)) {
-        console.log(history);
+        if (isTrending(history.orders)) {
+            var market = _.find(trendingMarkets, { MarketName: history.marketName });
+            market.trending = true;
+            console.log('marketName: ' + history.marketName + ' is trending');
+        } else {
+            _.remove(trendingMarkets, { MarketName: history.marketName });
+        }
+        if (!_.isEmpty(trendingMarkets)) {
+            var market = _.find(trendingMarkets, function(o) { return !o.trending; });
+            if (market)
+                socket.emit('orderHistory', market.MarketName);
+        }
     }
 });
 
@@ -46,6 +56,36 @@ socket.on('accountData', function(accountData) {
 
     $("#account-modal").modal('show');
 });
+
+function isTrending(orders) {
+    var firstHit, secondHit, percentIncrease, bottomPrice;
+    orders = _.sortBy(orders, function(order) { return new Date(order.TimeStamp); });
+    _.forEach(orders, function(o) {
+        if (bottomPrice && o.Price > bottomPrice) {
+            if (!firstHit)
+                percentIncrease = ((o.Price * 100) / bottomPrice) - 100;
+            else
+                percentIncrease = ((o.Price * 100) / firstHit) - 100;
+            if (percentIncrease >= 5) {
+                console.log('percentIncrease: ' + percentIncrease + ',firstHit: ' + firstHit + ',secondHit: ' + secondHit + ',Price: ' + o.Price);
+                if (!firstHit)
+                    firstHit = o.Price;
+                else if (!secondHit)
+                    secondHit = o.Price;
+                else if (o.Price > secondHit) {
+                    firstHit = o.Price;
+                    secondHit = 0;
+                }
+            }
+        } else {
+            bottomPrice = o.Price;
+            if (firstHit && secondHit)
+                secondHit = 0;
+        }
+    });
+    console.log('firstHit: ' + firstHit + ',secondHit: ' + secondHit);
+    return (firstHit && secondHit);
+}
 
 function updateUsdPrices(markets) {
     const usdt_btc = _.find(markets, { MarketName: 'USDT-BTC' }),
