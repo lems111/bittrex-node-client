@@ -14,17 +14,20 @@ socket.on('marketList', function(marketList) {
 
 socket.on('orderHistory', function(history) {
     if (!_.isEmpty(history)) {
-        if (isTrending(history.orders)) {
-            var market = _.find(trendingMarkets, { MarketName: history.marketName });
-            market.trending = true;
-            console.log('marketName: ' + history.marketName + ' is trending');
-        } else {
-            _.remove(trendingMarkets, { MarketName: history.marketName });
-        }
-        if (!_.isEmpty(trendingMarkets)) {
-            var market = _.find(trendingMarkets, function(o) { return !o.trending; });
-            if (market)
-                socket.emit('orderHistory', market.MarketName);
+        var trendCount = checkTrending(history);
+
+        if (trendCount)
+            $('#trend-btn').text('Trends (' + trendCount + ')');
+
+        _.remove(trendingMarkets, { MarketName: history.marketName });
+
+        if (!_.isEmpty(trendingMarkets))
+            socket.emit('orderHistory', trendingMarkets[0].MarketName);
+        else {
+            if (trendCount > 0)
+                $("#trend-modal").modal('show');
+            // updating trend count again, in case it's a zero
+            $('#trend-btn').text('Trends (' + trendCount + ')').prop('disabled', false);
         }
     }
 });
@@ -57,16 +60,17 @@ socket.on('accountData', function(accountData) {
     $("#account-modal").modal('show');
 });
 
-function isTrending(orders) {
+function checkTrending(history) {
+    const increaseCriteria = trendPercentIncrease/2;
     var firstHit, secondHit, percentIncrease, bottomPrice;
-    orders = _.sortBy(orders, function(order) { return new Date(order.TimeStamp); });
+    const orders = _.sortBy(history.orders, function(order) { return new Date(order.TimeStamp); });
     _.forEach(orders, function(o) {
         if (bottomPrice && o.Price > bottomPrice) {
             if (!firstHit)
                 percentIncrease = ((o.Price * 100) / bottomPrice) - 100;
             else
                 percentIncrease = ((o.Price * 100) / firstHit) - 100;
-            if (percentIncrease >= 5) {
+            if (percentIncrease >= increaseCriteria) {
                 //console.log('percentIncrease: ' + percentIncrease + ',firstHit: ' + firstHit + ',secondHit: ' + secondHit + ',Price: ' + o.Price);
                 if (!firstHit)
                     firstHit = o.Price;
@@ -83,8 +87,13 @@ function isTrending(orders) {
                 secondHit = 0;
         }
     });
-    //console.log('firstHit: ' + firstHit + ',secondHit: ' + secondHit);
-    return (firstHit && secondHit);
+
+    if (firstHit && secondHit) {
+        const trendRowTemplate = document.getElementById("template-trend-row").innerHTML,
+            trendRow = trendRowTemplate.replace(/{{data1}}/g, history.marketName)
+        $("#trend-container").prepend(trendRow);
+    }
+    return $("#trend-container").children().length;
 }
 
 function updateUsdPrices(markets) {
@@ -121,6 +130,8 @@ function checkIfProfitable(ticker) {
         else
             $("#opportunity-container").prepend(opportunityRow);
 
+        $("#opportunity-title").text('Profit Opportunities - select a ticker to start trading');
+
         $("#" + ticker.MarketName + ".opportunity-row").data('ticker', ticker);
         if (config.autoTrade === 'on' && _.isEmpty(tradeData))
             initTrade(ticker.MarketName);
@@ -136,17 +147,17 @@ function determineProfit(ticker, usd_price) {
         if (tickerUsdPrice <= profitTickerCriteria.tickerPriceCeiling) {
             const bidUsdPrice = ticker.Bid * usd_price,
                 askUsdPrice = ticker.Ask * usd_price,
-                belowRate = ticker.Bid + (ticker.Bid * config.margin),
-                belowPrice = usd_price * belowRate,
-                aboveRate = ticker.Ask - (ticker.Ask * config.margin),
-                abovePrice = usd_price * aboveRate,
-                adjustedBelowRate = ((belowRate * config.commission) + belowRate) * config.tradeUnits,
-                adjustedBelowPrice = usd_price * adjustedBelowRate,
-                adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * config.tradeUnits,
-                adjustedAbovePrice = usd_price * adjustedAboveRate,
-                gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
+                buyRate = ticker.Bid + (ticker.Bid * config.margin),
+                buyPrice = usd_price * buyRate,
+                sellRate = ticker.Ask - (ticker.Ask * config.margin),
+                sellPrice = usd_price * sellRate,
+                totalBuyRate = ((buyRate * config.commission) + buyRate) * config.tradeUnits,
+                totalBuyPrice = usd_price * totalBuyRate,
+                totalSellRate = (sellRate - (sellRate * config.commission)) * config.tradeUnits,
+                totalSellPrice = usd_price * totalSellRate,
+                gainsPrice = totalSellPrice - totalBuyPrice;
 
-            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',adjustedAbovePrice:' + adjustedAbovePrice + ',adjustedBelowPrice:' + adjustedBelowPrice +', gainsPrice: ' + gainsPrice);
+            //console.log(ticker.MarketName + ',askUsdPrice: ' + askUsdPrice + ',bidUsdPrice: ' + bidUsdPrice + ',totalSellPrice:' + totalSellPrice + ',totalBuyPrice:' + totalBuyPrice +', gainsPrice: ' + gainsPrice);
             if (gainsPrice >= profitTickerCriteria.gains) {
                 ret.profitable = true;
                 ret.gains = gainsPrice;

@@ -14,16 +14,19 @@ function restoreData() {
 
     if (localStorage.profitTickerCriteria)
         profitTickerCriteria = JSON.parse(localStorage.profitTickerCriteria);
+
+    if (localStorage.trendPercentIncrease)
+        trendPercentIncrease = JSON.parse(localStorage.trendPercentIncrease);
 }
 
 function copy(el) {
     new Clipboard(el, {
         text: function(trigger) {
             switch (trigger.id) {
-                case 'overCurrent':
-                    return rates.aboveRate;
-                case 'belowCurrent':
-                    return rates.belowRate;
+                case 'sell-info':
+                    return rates.sellRate;
+                case 'buy-info':
+                    return rates.buyRate;
                 default:
                     return '';
             }
@@ -34,6 +37,8 @@ function copy(el) {
 }
 
 function lookForTrends(){
+    $('#trend-container').children().remove();
+    $('#trend-btn').text('Trends (...)').prop('disabled', true);
     socket.emit('marketList');
 }
 
@@ -90,6 +95,11 @@ function updateAutoTrade() {
 function updateTradeUnits(units) {
     config.tradeUnits = units;
     localStorage.config = JSON.stringify(config);
+}
+
+function updateTrendPercentIncrease(newTrendPercentIncrease) {
+    trendPercentIncrease = newTrendPercentIncrease;
+    localStorage.trendPercentIncrease = JSON.stringify(trendPercentIncrease);
 }
 
 function updateTradeBlacklist(marketNames) {
@@ -149,41 +159,41 @@ function initTrade(marketName) {
 function updateRates(rate) {
     const rates = calculateFromRate(rate);
     $("#currentUSD").text(rate + ': $' + rates.usdPrice);
-    $("#overCurrent").text('Sell: ' + rates.aboveRate + ': $' + rates.abovePrice).prop('title', ticker.ask);
-    $("#belowCurrent").text('Buy: ' + rates.belowRate + ': $' + rates.belowPrice).prop('title', ticker.bid);
-    $("#adjustedOverCurrent").text('Sell: ' + rates.adjustedAboveRate + ': $' + rates.adjustedAbovePrice);
-    $("#adjustedBelowCurrent").text('Buy: ' + rates.adjustedBelowRate + ': $' + rates.adjustedBelowPrice);
+    $("#sell-info").text('Sell: ' + rates.sellRate + ': $' + rates.sellPrice).prop('title', ticker.ask);
+    $("#buy-info").text('Buy: ' + rates.buyRate + ': $' + rates.buyPrice).prop('title', ticker.bid);
+    $("#total-sell-info").text('Total Sell cost: ' + rates.totalSellRate + ': $' + rates.totalSellPrice);
+    $("#total-buy-info").text('Total Buy cost: ' + rates.totalBuyRate + ': $' + rates.totalBuyPrice);
     $("#gains").text('Gains: ' + rates.gainsRate + ' ($' + rates.gainsPrice + ')');
 }
 
 function calculateFromRate(rate) {
     const usdPrice = ticker.usdPrice * rate,
-        belowRate = ticker.bid + (ticker.bid * config.margin),
-        belowPrice = ticker.usdPrice * belowRate,
-        aboveRate = ticker.ask - (ticker.ask * config.margin),
-        abovePrice = ticker.usdPrice * aboveRate;
+        buyRate = ticker.bid + (ticker.bid * config.margin),
+        buyPrice = ticker.usdPrice * buyRate,
+        sellRate = ticker.ask - (ticker.ask * config.margin),
+        sellPrice = ticker.usdPrice * sellRate;
 
     var tradeUnits = config.tradeUnits,
-        adjustedBelowRate = ((belowRate * config.commission) + belowRate) * tradeUnits,
-        adjustedBelowPrice = ticker.usdPrice * adjustedBelowRate,
-        adjustedAboveRate = (aboveRate - (aboveRate * config.commission)) * tradeUnits,
-        adjustedAbovePrice = ticker.usdPrice * adjustedAboveRate,
-        gainsPrice = adjustedAbovePrice - adjustedBelowPrice,
-        gainsRate = adjustedAboveRate - adjustedBelowRate;
+        totalBuyRate = ((buyRate * config.commission) + buyRate) * tradeUnits,
+        totalBuyPrice = ticker.usdPrice * totalBuyRate,
+        totalSellRate = (sellRate - (sellRate * config.commission)) * tradeUnits,
+        totalSellPrice = ticker.usdPrice * totalSellRate,
+        gainsPrice = totalSellPrice - totalBuyPrice,
+        gainsRate = totalSellRate - totalBuyRate;
 
-    gainsPrice = adjustedAbovePrice - adjustedBelowPrice;
-    gainsRate = adjustedAboveRate - adjustedBelowRate;
+    gainsPrice = totalSellPrice - totalBuyPrice;
+    gainsRate = totalSellRate - totalBuyRate;
 
     rates = {
         usdPrice: usdPrice,
-        abovePrice: abovePrice,
-        belowPrice: belowPrice,
-        belowRate: parseFloat(belowRate.toFixed(8)),
-        aboveRate: parseFloat(aboveRate.toFixed(8)),
-        adjustedBelowRate: parseFloat(adjustedBelowRate.toFixed(8)),
-        adjustedAboveRate: parseFloat(adjustedAboveRate.toFixed(8)),
-        adjustedBelowPrice: adjustedBelowPrice,
-        adjustedAbovePrice: adjustedAbovePrice,
+        sellPrice: sellPrice,
+        buyPrice: buyPrice,
+        buyRate: parseFloat(buyRate.toFixed(8)),
+        sellRate: parseFloat(sellRate.toFixed(8)),
+        totalBuyRate: parseFloat(totalBuyRate.toFixed(8)),
+        totalSellRate: parseFloat(totalSellRate.toFixed(8)),
+        totalBuyPrice: totalBuyPrice,
+        totalSellPrice: totalSellPrice,
         gainsPrice: gainsPrice,
         gainsRate: parseFloat(gainsRate.toFixed(8)),
         tradeUnits: tradeUnits
@@ -237,7 +247,7 @@ function getUsdPrice(marketName) {
 }
 
 function updateActiveTradeMsg(updatedTradeData) {
-    if (!_.isEmpty(updatedTradeData)) {
+    if (!_.isEmpty(updatedTradeData) && updatedTradeData.marketName) {
         const msg = updatedTradeData.marketName + ' - Buy Rate: ' + updatedTradeData.buyRate + ' Sell Rate: ' + updatedTradeData.sellRate + ' Trade Units: ' + updatedTradeData.tradeUnits + ' Gains: ' + updatedTradeData.gainsPrice;
         $("#active-trade-msg").text(msg);
         $("#active-trade-row").show();

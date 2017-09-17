@@ -40,7 +40,6 @@ io.on('connection', function(client) {
     });
 
     client.on('join', function(data) {
-        logMessage('joined client, data: ' + JSON.stringify(data, null, 4));
         if (data && data.apiKey && data.apiSecret) {
             config.bittrex.apikey = data.apiKey;
             config.bittrex.apisecret = data.apiSecret;

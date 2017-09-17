@@ -1,23 +1,24 @@
 function trade() {
-    if (!_.isEmpty(rates) && rates.belowRate && rates.aboveRate && rates.adjustedBelowRate && rates.adjustedBelowRate >= config.satoshiLimit) {
-        if (!shouldCancelTrade() && proceedWithTrade()) {
-            const newTradeData = {
-                marketName: config.marketName,
-                buyRate: rates.belowRate,
-                sellRate: rates.aboveRate,
-                tradeUnits: rates.tradeUnits,
-                currency: config.currency,
-                buyCost: rates.adjustedBelowRate,
-                gainsPrice: rates.gainsPrice
-            };
-            updateActiveTrade(newTradeData);
-            socket.emit('trade', tradeData);
-            return true;
-        } else
-            cancelTrade();
-    } else if (config.satoshiLimit > rates.adjustedBelowRate)
-        updateTradeStatus({ status: 'error', msg: 'buying price is below satoshi limit (' + config.satoshiLimit + ')' });
-
+    if (!_.isEmpty(rates)) {
+        if (rates.buyRate && rates.sellRate && rates.totalBuyRate && rates.totalBuyRate >= config.satoshiLimit) {
+            if (!shouldCancelTrade() && proceedWithTrade()) {
+                const newTradeData = {
+                    marketName: config.marketName,
+                    buyRate: rates.buyRate,
+                    sellRate: rates.sellRate,
+                    tradeUnits: rates.tradeUnits,
+                    currency: config.currency,
+                    buyCost: rates.totalBuyRate,
+                    gainsPrice: rates.gainsPrice
+                };
+                updateActiveTrade(newTradeData);
+                socket.emit('trade', tradeData);
+                return true;
+            } else
+                cancelTrade();
+        } else if (config.satoshiLimit > rates.totalBuyRate)
+            updateTradeStatus({ status: 'error', msg: 'buying price is below satoshi limit (' + config.satoshiLimit + ')' });
+    }
     return false;
 }
 
@@ -31,7 +32,7 @@ function proceedWithTrade() {
 
 function shouldCancelTrade() {
     if (!_.isEmpty(tradeData) && !_.isEmpty(ticker) && tradeData.status === 'active' && tradeData.order.OrderType === 'LIMIT_BUY' && (tradeData.order.Quantity == tradeData.order.QuantityRemaining) &&
-        (ticker.bid > rates.belowRate || ticker.ask < rates.aboveRate))
+        (ticker.bid > rates.buyRate || ticker.ask < rates.sellRate))
         return true;
     return false;
 }

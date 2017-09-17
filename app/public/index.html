@@ -64,6 +64,11 @@
                         <span class="input-group-addon" id="basic-addon1">Minimum gain allowed</span>
                         <input id="update-min-gain" type="text" class="form-control" aria-label="Text input" placeholder="enter minimum gain allowed in USD cents...ex: .02">
                     </div>
+                     <label for="update-percent-increase">Trend Search Criteria</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-addon" id="basic-addon1">Percent Increase</span>
+                        <input id="update-percent-increase" type="text" class="form-control" aria-label="Text input" placeholder="enter percent increase...ex: 15">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -92,6 +97,22 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="trend-modal" tabindex="-1" role="dialog" aria-labelledby="header-title" aria-hidden="true">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">Trending</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="trend-container" class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <a class="navbar-brand" href="#">bittrex client</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,7 +126,7 @@
         <form class="form-inline my-2 my-lg-0">
             <button id="settings-btn" class="btn btn-sm btn-outline-success mr-sm-2" type="button">Update Settings</button>
             <button class="btn btn-sm btn-outline-info mr-sm-2" type="button" onclick="getAccountInfo()">Account</button>
-            <button class="btn btn-sm btn-outline-warning my-2 my-sm-0" type="button" onclick="lookForTrends()">Trends</button>
+            <button id="trend-btn" class="btn btn-sm btn-outline-warning my-2 my-sm-0" type="button" onclick="lookForTrends()">Trends</button>
         </form>
     </nav>
     <nav class="navbar navbar-expand-md navbar-dark fixed-top fixed-top-2 bg-dark">
@@ -114,10 +135,10 @@
                 <span id="currentUSD" class="badge badge-pill badge-info p-2"></span>
             </li>
             <li class="nav-item p-2">
-                <span id="belowCurrent" class="badge badge-pill badge-secondary p-2" onclick="copy('#belowCurrent')"></span>
+                <span id="buy-info" class="badge badge-pill badge-secondary p-2" onclick="copy('#buy-info')"></span>
             </li>
             <li class="nav-item p-2">
-                <span id="adjustedBelowCurrent" class="badge badge-pill badge-secondary p-2"></span>
+                <span id="total-buy-info" class="badge badge-pill badge-secondary p-2"></span>
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
@@ -132,10 +153,10 @@
                 <span id="gains" class="badge badge-pill badge-success p-2"></span>
             </li>
             <li class="nav-item p-2">
-                <span id="overCurrent" class="badge badge-pill badge-secondary p-2" onclick="copy('#overCurrent')"></span>
+                <span id="sell-info" class="badge badge-pill badge-secondary p-2" onclick="copy('#sell-info')"></span>
             </li>
             <li class="nav-item p-2">
-                <span id="adjustedOverCurrent" class="badge badge-pill badge-secondary p-2"></span>
+                <span id="total-sell-info" class="badge badge-pill badge-secondary p-2"></span>
             </li>
         </ul>
         <form class="form-inline">
@@ -161,7 +182,7 @@
                 </div>
             </div>
             <div id="opportunities" class="col-12 col-md-auto col-lg-auto">
-                <h4>Profit Opportunities</h3>
+                <h4 id="opportunity-title">Profit Opportunities</h3>
                 <div id="opportunity-container" class="container">
                     <!-- Results here -->
                 </div>
@@ -187,14 +208,16 @@
             </div>
         </div>
     </script>
+    <script id="template-trend-row" type="text/template">
+        <div class="alert alert-warning" role="alert">{{data1}}</div>
+    </script>
 </body>
 
 </html>
 <script>
 var config = {marketName: 'BTC-KMD', currency: 'KMD', margin:0.001, commission:.0025, tradeUnits: 100,
-            frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off',
-            blacklistTickers: ['BTC-KMD', 'BTC-PINK', 'BTC-GNT', 'ETH-GNT', 'BTC-BNT', 'BTC-TKN', 'ETH-TKN', 'BTC-POT', 'BTC-FLO', 'BTC-CPC', 'BTC-SYS']},    
-    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, trendingMarkets;
+    frequency: 'repeat', satoshiLimit: .0005, apiKey:'', apiSecret:'', autoTrade: 'off', blacklistTickers: []},
+    rates, tradeData, ticker, tradesInterval, btc_usdPrice, eth_usdPrice, trendingMarkets, trendPercentIncrease = 5,
     profitTickerCriteria = {volume: 500000, gains: .25, tickerPriceCeiling: 2};
     
 restoreData();
@@ -211,6 +234,7 @@ $( document ).ready(function() {
     $("#update-trade-blacklist").text(config.blacklistTickers.toString());
     $("#update-ticker-ceiling").val(profitTickerCriteria.tickerPriceCeiling);
     $("#update-min-gain").val(profitTickerCriteria.gains);
+    $("#update-percent-increase").val(trendPercentIncrease);
 });
 
 $( "#process-update" ).on( "click", function() {
@@ -222,7 +246,8 @@ $( "#process-update" ).on( "click", function() {
         apiSecret = $("#update-api-secret").val(),
         tradeBlacklist = $("#update-trade-blacklist").text(),
         tickerPriceCeiling = $("#update-ticker-ceiling").val(),
-        minGain = $("#update-min-gain").val();;
+        minGain = $("#update-min-gain").val(),
+        newTrendPercentIncrease = $("#update-percent-increase").val();
 
     updateMargin(parseFloat(margin));
     switchMarkets(marketName.toUpperCase());
@@ -231,6 +256,7 @@ $( "#process-update" ).on( "click", function() {
     updateTradeBlacklist(tradeBlacklist);
     updateTickerPriceCeiling(parseFloat(tickerPriceCeiling));
     updateProfitMinGain(parseFloat(minGain));
+    updateTrendPercentIncrease(parseInt(newTrendPercentIncrease));
     $("#update-modal").modal('hide');
 });
 
