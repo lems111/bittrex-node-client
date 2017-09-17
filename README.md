@@ -7,6 +7,8 @@ This application uses the node package [node.bittrex.api](https://github.com/dpa
 
 If you have any questions or feedback - I can be contacted at luis@devluismiranda.com
 
+This Library is licensed under the [MIT license](https://github.com/dparlevliet/node.bittrex.api/blob/master/LICENSE).
+
 Before you start
 ================
 Keep in mind that this client's purpose is for trading in the bittrex exchange; so, be thoughtful and take the time to understand how to use this application before you start trading.
