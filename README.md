@@ -17,6 +17,10 @@ Keep in mind that this client's purpose is for trading in the bittrex exchange; 
 
 ![image](https://user-images.githubusercontent.com/1113806/30525069-ed44bfce-9bc4-11e7-9f7d-d9cb3916771c.png)
 
+Notes to run the client
+=======================
+- Make sure that the node server is running to serve the files to the browser. All supporting files (bootstrap,jquery, etc) are served to the client from node_modules folder
+
 - When the page is loaded for the first time, click on 'Update Settings' and enter the api key and secret key to start trading - this information is only maintained in the browser local storage. Make sure to keep this information safe, in case the data is loss and needs to be re-entered.
 
 - After updating the settings for the first time, refresh the page to reconnect to the server with the api information - this only needs to be done when the api info is entered, from thereon, it'll be loaded from the local storage
