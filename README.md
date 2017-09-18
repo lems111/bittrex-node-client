@@ -19,7 +19,7 @@ Keep in mind that this client's purpose is for trading in the bittrex exchange; 
 
 Notes to run the client
 =======================
-- Make sure that the node server is running to serve the files to the browser. All supporting files (bootstrap,jquery, etc) are served to the client from node_modules folder
+- Make sure that the node server is running to serve the files to the browser. All supporting files (bootstrap,jquery, etc) are served to the client from the node_modules folder
 
 - When the page is loaded for the first time, click on 'Update Settings' and enter the api key and secret key to start trading - this information is only maintained in the browser local storage. Make sure to keep this information safe, in case the data is loss and needs to be re-entered.
 
