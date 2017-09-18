@@ -1,6 +1,6 @@
- Use at your own risk!
+ Bittrex Node Client
  =====================
-This client application is used for trading in the bittrex exchange.
+This is a browser-client application used for trading in the bittrex exchange.
 You'll need to have [nodejs installed](https://nodejs.org/en/download/package-manager/) on your machine to run this client
 
 This application uses the node package [node.bittrex.api](https://github.com/dparlevliet/node.bittrex.api)
